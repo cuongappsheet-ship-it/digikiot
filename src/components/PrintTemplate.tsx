@@ -77,13 +77,13 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
             <span className="text-[10px] uppercase font-bold text-slate-500">Khách hàng:</span>
             <span className="font-bold text-[13px] text-slate-900">{partner}</span>
           </p>
-          {phone && phone !== '---' && (
+          {phone && phone !== '---' && phone.trim() !== '' && phone !== 'undefined' && phone !== 'null' && (
             <p className="flex items-center gap-1.5">
               <span className="text-[10px] uppercase font-bold text-slate-500">SĐT:</span>
               <span className="font-bold text-[13px] text-slate-900">{phone}</span>
             </p>
           )}
-          {address && address !== '---' && (
+          {address && address !== '---' && address.trim() !== '' && address !== 'undefined' && address !== 'null' && (
             <p className="flex items-center gap-1.5 w-full mt-1">
               <span className="text-[10px] uppercase font-bold text-slate-500">Địa chỉ:</span>
               <span className="font-medium text-[12px] text-slate-900">{address}</span>
@@ -97,7 +97,7 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
         <div className="mb-4 rounded-lg border border-slate-300 overflow-hidden">
           <table className="w-full text-[11px] md:text-xs">
             <thead>
-              <tr className="border-b-2 border-slate-900 text-slate-800">
+              <tr className="border-b border-slate-300 text-slate-800 bg-slate-50/50">
                 <th className="py-1.5 px-2 text-center font-bold uppercase w-8">TT</th>
                 <th className="py-1.5 px-2 text-left font-bold uppercase">Tên mặt hàng / Quy cách</th>
                 <th className="py-1.5 px-2 text-center font-bold uppercase w-12">ĐVT</th>
@@ -142,7 +142,7 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
               <span>-{formatNumber(discount)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center border-t-2 border-b-2 border-slate-900 py-1.5 text-slate-900 my-1">
+          <div className="flex justify-between items-center border-t border-b border-slate-300 py-1.5 text-slate-900 my-1">
             <span className="font-bold uppercase text-[12px]">Tổng cộng:</span>
             <span className="text-sm md:text-base font-black">{formatNumber(total)}</span>
           </div>

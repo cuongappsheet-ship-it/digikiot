@@ -199,6 +199,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               date: String(inv.createdAt || inv.date || ''),
               customer: String(inv.customerID || inv.customer || ''),
               phone: String(inv.phone || ''),
+              address: String(inv.address || ''),
               total,
               paid,
               debt,
