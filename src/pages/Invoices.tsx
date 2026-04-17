@@ -231,7 +231,25 @@ export const Invoices: React.FC = () => {
       </div>
 
       {/* Invoice Detail Modal */}
-      {selectedInvoice && (
+      {selectedInvoice && (() => {
+        const matchingCustomer = customers.find(c => c.name === selectedInvoice.customer || (selectedInvoice.phone && c.phone === selectedInvoice.phone));
+        const displayPhone = selectedInvoice.phone || matchingCustomer?.phone;
+        const displayAddress = matchingCustomer?.address;
+        
+        const dateOfThisInvoice = new Date(selectedInvoice.date);
+        const customerInvoices = invoices.filter(i => 
+          i.customer === selectedInvoice.customer && 
+          (new Date(i.date) < dateOfThisInvoice || (i.date === selectedInvoice.date && i.id < selectedInvoice.id))
+        );
+        const customerReturns = (returnSalesOrders || []).filter(r => 
+          r.customer === selectedInvoice.customer && 
+          new Date(r.date) < dateOfThisInvoice
+        );
+        const calculatedOldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
+                        customerReturns.reduce((sum, r) => sum + (r.total - r.paid), 0);
+        const oldDebt = selectedInvoice.oldDebt !== undefined ? selectedInvoice.oldDebt : calculatedOldDebt;
+        
+        return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -274,16 +292,16 @@ export const Invoices: React.FC = () => {
                       <p className="text-xs font-bold text-slate-800">{selectedInvoice.customer}</p>
                     </div>
                   </div>
-                  {(selectedInvoice.phone || customers.find(c => c.name === selectedInvoice.customer)?.address) && (
+                  {(displayPhone || displayAddress) && (
                     <div className="mt-2 pt-2 border-t border-slate-200/60 pl-8 space-y-1">
-                      {selectedInvoice.phone && (
+                      {displayPhone && (
                         <p className="text-xs text-slate-600 font-medium">
-                          <span className="text-slate-400 mr-1">ĐT:</span> {selectedInvoice.phone}
+                          <span className="text-slate-400 mr-1">ĐT:</span> {displayPhone}
                         </p>
                       )}
-                      {customers.find(c => c.name === selectedInvoice.customer)?.address && (
-                        <p className="text-xs text-slate-600 font-medium">
-                          <span className="text-slate-400 mr-1">Đ/C:</span> {customers.find(c => c.name === selectedInvoice.customer)?.address}
+                      {displayAddress && (
+                        <p className="text-xs text-slate-600 font-medium whitespace-pre-wrap">
+                          <span className="text-slate-400 mr-1">Đ/C:</span> {displayAddress}
                         </p>
                       )}
                     </div>
@@ -352,14 +370,18 @@ export const Invoices: React.FC = () => {
                   </div>
                   <span className="text-2xl font-bold text-blue-600 tracking-tighter">{formatNumber(selectedInvoice.total)}đ</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-blue-200">
+                <div className="grid grid-cols-3 gap-2 pt-4 border-t border-blue-200">
+                  <div className="bg-slate-50/50 p-3 rounded-xl border border-slate-200">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nợ cũ</p>
+                    <p className="text-sm font-bold text-slate-700 mt-1">{formatNumber(oldDebt || 0)}đ</p>
+                  </div>
                   <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
-                    <p className="text-base font-bold text-emerald-700 mt-1">{formatNumber(selectedInvoice.paid)}đ</p>
+                    <p className="text-sm font-bold text-emerald-700 mt-1">{formatNumber(selectedInvoice.paid)}đ</p>
                   </div>
                   <div className="bg-red-50/50 p-3 rounded-xl border border-red-100">
-                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Còn nợ</p>
-                    <p className="text-base font-bold text-red-700 mt-1">{formatNumber(selectedInvoice.debt)}đ</p>
+                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Nợ hiện tại</p>
+                    <p className="text-sm font-bold text-red-700 mt-1">{formatNumber((oldDebt || 0) + selectedInvoice.debt)}đ</p>
                   </div>
                 </div>
               </div>
@@ -401,7 +423,8 @@ export const Invoices: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Payment Modal */}
       {isPaymentModalOpen && selectedInvoice && (

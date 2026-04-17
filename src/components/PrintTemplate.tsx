@@ -147,25 +147,23 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
             <span className="text-sm md:text-base font-black">{formatNumber(total)}</span>
           </div>
           
+          <div className="mb-2 text-center text-[10px] text-slate-800 italic font-medium leading-tight">
+            (Bằng chữ: {numberToWordsVN(total)})
+          </div>
+          
           <div className="p-2 space-y-1 bg-slate-50 rounded border border-slate-200 text-xs text-slate-800">
             <div className="flex justify-between font-medium">
               <span>Nợ cũ:</span>
               <span className="font-bold">{formatNumber(oldDebt)}</span>
             </div>
             <div className="flex justify-between font-medium">
-              <span>Khách thanh toán:</span>
+              <span>Đã thanh toán:</span>
               <span className="font-bold text-emerald-600">{formatNumber(paid)}</span>
             </div>
             <div className="flex justify-between items-center pt-1 mt-1 border-t border-slate-300">
               <span className="font-bold uppercase text-[10px]">Tổng nợ hiện tại:</span>
               <span className="text-sm font-black tracking-tighter">{formatNumber(oldDebt + (total - paid))}</span>
             </div>
-          </div>
-          
-          <div className="mt-2 text-center">
-            <p className="text-[10px] text-slate-800 italic font-medium leading-tight">
-              Bằng chữ: {numberToWordsVN(total)}
-            </p>
           </div>
         </div>
       </div>
