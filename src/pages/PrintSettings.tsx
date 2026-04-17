@@ -8,9 +8,12 @@ export const PrintSettings: React.FC = () => {
   const navigate = useNavigate();
   const [settings, setSettings] = useState(printSettings);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    updatePrintSettings(settings);
+  const handleSave = async () => {
+    setIsSaving(true);
+    await updatePrintSettings(settings);
+    setIsSaving(false);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
@@ -117,10 +120,11 @@ export const PrintSettings: React.FC = () => {
 
             <button 
               onClick={handleSave}
-              className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95 ${isSaved ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}`}
+              disabled={isSaving}
+              className={`w-full py-4 rounded-xl font-bold uppercase tracking-widest text-sm flex items-center justify-center gap-3 transition-all shadow-lg active:scale-95 disabled:opacity-70 ${isSaved ? 'bg-emerald-500 text-white shadow-emerald-200' : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}`}
             >
-              <Save size={20} />
-              {isSaved ? 'Đã lưu cài đặt' : 'Lưu cài đặt bản in'}
+              <Save size={20} className={isSaving ? 'animate-spin' : ''} />
+              {isSaving ? 'Đang lưu...' : isSaved ? 'Đã lưu cài đặt' : 'Lưu cài đặt bản in'}
             </button>
           </div>
         </div>

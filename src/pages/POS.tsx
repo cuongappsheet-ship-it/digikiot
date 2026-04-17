@@ -133,7 +133,7 @@ export const POS: React.FC = () => {
     setTimeout(() => {
       window.print();
       setTimeout(() => setPrintData(null), 2000);
-    }, 300);
+    }, 50);
   };
 
   // Search results
@@ -316,6 +316,7 @@ export const POS: React.FC = () => {
     await addInvoice(invoice);
     
     if (autoPrint) {
+      const oldDebt = selectedCustomer?.debt || 0;
       handlePrint({
         title: 'HÓA ĐƠN BÁN HÀNG',
         id: invoice.id,
@@ -327,6 +328,7 @@ export const POS: React.FC = () => {
         total: invoice.total,
         paid: invoice.paid,
         debt: invoice.debt || 0,
+        oldDebt: oldDebt,
         discount: invoice.discount || 0,
         type: 'HOA_DON'
       });
@@ -903,6 +905,14 @@ export const POS: React.FC = () => {
                   const inv = invoices.find(i => i.id === showSuccessModal.id);
                   if (inv) {
                     const customer = customers.find(c => (c.name === inv.customer && c.phone === inv.phone) || c.phone === inv.phone);
+                    
+                    // Old debt calculation
+                    const customerInvoices = invoices.filter(i => 
+                      i.customer === inv.customer && 
+                      (new Date(i.date) < new Date(inv.date) || (i.date === inv.date && i.id < inv.id))
+                    );
+                    const oldDebt = customerInvoices.reduce((sum, i) => sum + (i.total - i.paid), 0);
+
                     handlePrint({
                       title: 'HÓA ĐƠN BÁN HÀNG',
                       id: inv.id,
@@ -914,6 +924,7 @@ export const POS: React.FC = () => {
                       total: inv.total,
                       paid: inv.paid,
                       debt: inv.debt || 0,
+                      oldDebt: oldDebt,
                       discount: inv.discount || 0,
                       type: 'HOA_DON'
                     });

@@ -72,7 +72,7 @@ export const ImportHistory: React.FC = () => {
     setTimeout(() => {
       window.print();
       setTimeout(() => setPrintData(null), 2000);
-    }, 300);
+    }, 50);
   };
 
   const handleOpenOrder = (order: ImportOrder) => {

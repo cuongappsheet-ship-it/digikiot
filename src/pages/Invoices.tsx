@@ -48,6 +48,15 @@ export const Invoices: React.FC = () => {
 
   const handlePrint = (inv: Invoice) => {
     const customer = customers.find(c => (c.name === inv.customer && c.phone === inv.phone) || c.phone === inv.phone);
+    
+    // Calculate total debt of this customer from ALL invoices BEFORE this one
+    // We sum the debt component of each invoice.
+    const customerInvoices = invoices.filter(i => 
+      i.customer === inv.customer && 
+      (new Date(i.date) < new Date(inv.date) || (i.date === inv.date && i.id < inv.id))
+    );
+    const oldDebt = customerInvoices.reduce((sum, i) => sum + (i.total - i.paid), 0);
+
     setPrintData({
       title: 'HÓA ĐƠN BÁN HÀNG',
       id: inv.id,
@@ -59,6 +68,7 @@ export const Invoices: React.FC = () => {
       total: inv.total,
       paid: inv.paid,
       debt: inv.debt || 0,
+      oldDebt: oldDebt,
       discount: inv.discount || 0,
       type: 'HOA_DON'
     });
@@ -69,7 +79,7 @@ export const Invoices: React.FC = () => {
       window.print();
       // Delay clearing print data significantly to ensure browser print dialog has captured it
       setTimeout(() => setPrintData(null), 2000);
-    }, 300);
+    }, 50);
   };
 
   const filteredInvoices = (invoices || []).filter(inv => 

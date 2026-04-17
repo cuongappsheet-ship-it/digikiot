@@ -117,7 +117,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiReturnSalesDetails,
           apiCash,
           apiMaintenance,
-          apiUsers
+          apiUsers,
+          apiSettings
         ] = await Promise.all([
           apiService.readSheet('Products'),
           apiService.readSheet('Customers'),
@@ -134,7 +135,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiService.readSheet('ReturnSalesDetails'),
           apiService.readSheet('CashLedger'),
           apiService.readSheet('Maintenance'),
-          apiService.readSheet('Users')
+          apiService.readSheet('Users'),
+          apiService.readSheet('Settings')
         ]);
 
         const mappedProducts = apiProducts.length > 0 ? apiProducts.map((p: any) => ({
@@ -361,6 +363,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             returnDate: String(m.returnDate || '')
           })) : [],
           users: apiUsers.length > 0 ? apiUsers : [],
+          printSettings: apiSettings.length > 0 ? {
+            storeName: apiSettings[0].storeName || defaultPrintSettings.storeName,
+            address: apiSettings[0].address || defaultPrintSettings.address,
+            phone: apiSettings[0].phone || defaultPrintSettings.phone,
+            email: apiSettings[0].email || defaultPrintSettings.email,
+            bankInfo: apiSettings[0].bankInfo || defaultPrintSettings.bankInfo,
+            footNote: apiSettings[0].footNote || defaultPrintSettings.footNote
+          } : prev.printSettings,
         }));
       } catch (error) {
         console.error("Failed to load data from Google Sheets:", error);
@@ -1033,8 +1043,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await apiService.deleteRecord('Users', id);
   };
 
-  const updatePrintSettings = (settings: PrintSettings) => {
+  const updatePrintSettings = async (settings: PrintSettings) => {
     setState(prev => ({ ...prev, printSettings: settings }));
+    
+    // Save to Google Sheets
+    try {
+      // Assuming Settings sheet exists and settings are stored in the first row (ID: main_settings)
+      await apiService.updateRecord('Settings', 'main_settings', {
+        id: 'main_settings',
+        storeName: settings.storeName,
+        address: settings.address,
+        phone: settings.phone,
+        email: settings.email,
+        bankInfo: settings.bankInfo,
+        footNote: settings.footNote
+      });
+      console.log('Successfully saved settings to Google Sheets');
+    } catch (e) {
+      console.error('Error saving settings to Google Sheets', e);
+    }
   };
 
   return (
