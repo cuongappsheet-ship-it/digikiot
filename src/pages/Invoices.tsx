@@ -73,7 +73,7 @@ export const Invoices: React.FC = () => {
       date: inv.date,
       partner: inv.customer,
       phone: inv.phone,
-      address: customer?.address || '',
+      address: inv.address || customer?.address || '',
       items: inv.items.map(i => ({ ...i, total: i.qty * i.price })),
       total: inv.total,
       paid: inv.paid,

@@ -51,6 +51,7 @@ export interface Invoice {
   date: string;
   customer: string;
   phone: string;
+  address?: string;
   total: number;
   paid: number;
   debt: number;

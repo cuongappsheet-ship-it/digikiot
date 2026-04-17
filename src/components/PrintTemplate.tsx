@@ -97,7 +97,7 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
         <div className="mb-4 rounded-lg border border-slate-300 overflow-hidden">
           <table className="w-full text-[11px] md:text-xs">
             <thead>
-              <tr className="bg-slate-800 text-white border-b border-slate-800">
+              <tr className="border-b-2 border-slate-900 text-slate-800">
                 <th className="py-1.5 px-2 text-center font-bold uppercase w-8">TT</th>
                 <th className="py-1.5 px-2 text-left font-bold uppercase">Tên mặt hàng / Quy cách</th>
                 <th className="py-1.5 px-2 text-center font-bold uppercase w-12">ĐVT</th>
@@ -142,8 +142,8 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
               <span>-{formatNumber(discount)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center bg-slate-800 p-2 rounded text-white my-1 shadow-sm">
-            <span className="font-bold uppercase text-[11px]">Tổng cộng:</span>
+          <div className="flex justify-between items-center border-t-2 border-b-2 border-slate-900 py-1.5 text-slate-900 my-1">
+            <span className="font-bold uppercase text-[12px]">Tổng cộng:</span>
             <span className="text-sm md:text-base font-black">{formatNumber(total)}</span>
           </div>
           
@@ -160,8 +160,8 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
               <span>Đã thanh toán:</span>
               <span className="font-bold text-emerald-600">{formatNumber(paid)}</span>
             </div>
-            <div className="flex justify-between items-center pt-1 mt-1 border-t border-slate-300">
-              <span className="font-bold uppercase text-[10px]">Tổng nợ hiện tại:</span>
+            <div className="flex justify-between items-center">
+              <span className="font-bold uppercase text-[10px]">Nợ sau đơn:</span>
               <span className="text-sm font-black tracking-tighter">{formatNumber(oldDebt + (total - paid))}</span>
             </div>
           </div>
