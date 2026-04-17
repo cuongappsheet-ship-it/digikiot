@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard } from '../types';
+import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings } from '../types';
 import { apiService } from '../services/api';
 import { generateId } from '../lib/idUtils';
 
@@ -28,7 +28,17 @@ interface AppContextProps extends AppState {
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
+  updatePrintSettings: (settings: PrintSettings) => void;
 }
+
+const defaultPrintSettings: PrintSettings = {
+  storeName: 'TIN HỌC CƯỜNG TÍN - ĐẮK SONG',
+  address: 'Số 22, Thôn Tân Bình - xã Đắk Song - tỉnh Lâm Đồng',
+  phone: '0931.113.048',
+  email: 'hotro@cuongtin.vn',
+  bankInfo: 'VPBank - STK: 9790357 - Chủ thể Lê Ngọc Cường',
+  footNote: 'Cảm ơn quý khách đã sử dụng dịch vụ & sản phẩm Cường Tín!'
+};
 
 const initialState: AppState = {
   currentUser: null,
@@ -43,7 +53,8 @@ const initialState: AppState = {
   cashTransactions: [],
   maintenanceRecords: [],
   serials: [],
-  stockCards: []
+  stockCards: [],
+  printSettings: defaultPrintSettings
 };
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -136,7 +147,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           isService: p.isService === true || p.isService === 'TRUE' || p.isService === 'true' || p.isService === 1,
           color: 'bg-blue-600',
           category: String(p.category || ''),
-          unit: String(p.unit || '')
+          unit: String(p.unit || ''),
+          warrantyMonths: p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa ? Number(p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa) : undefined
         })) : [];
 
         const extractItems = (record: any, details: any[], parentIdKeys: string[]) => {
@@ -158,6 +170,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 qty: qty,
                 sn: (d.sn || d.SN || d.serial || d.Serial || d.serials || d.Serials) ? String(d.sn || d.SN || d.serial || d.Serial || d.serials || d.Serials) : undefined,
                 unit: d.unit || d.Unit || undefined,
+                warrantyExpiry: d.warrantyExpiry || d.WarrantyExpiry || undefined,
                 importPriceTotal: Number(d.importPriceTotal || d.ImportPriceTotal || (product?.importPrice || 0) * qty)
               };
             });
@@ -200,11 +213,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               customer: String(ret.customerID || ret.customer || ''),
               totalGoods: Number(ret.totalGoods || 0),
               discount: Number(ret.discount || 0),
-              total: Number(ret.totalAmount || ret.total || 0),
+              total: Number(ret.totalAmount || ret.totalRefund || ret.total || 0),
               paid: Number(ret.paidAmount || ret.paid || 0),
               status: ret.status || 'DONE',
               note: String(ret.note || ''),
-              items: extractItems(ret, apiReturnSalesDetails, ['returnID', 'returnId', 'ReturnID', 'returnid'])
+              items: extractItems(ret, apiReturnSalesDetails, ['returnID', 'returnId', 'ReturnID', 'returnid', 'returnSalesId'])
             };
           }) : [];
 
@@ -215,11 +228,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               supplier: String(ret.supplierId || ret.supplier || ''),
               totalGoods: Number(ret.totalGoods || 0),
               discount: Number(ret.discount || 0),
-              total: Number(ret.totalAmount || ret.total || 0),
+              total: Number(ret.totalAmount || ret.totalRefund || ret.total || 0),
               received: Number(ret.receivedAmount || ret.received || 0),
               status: ret.status || 'DONE',
               note: String(ret.note || ''),
-              items: extractItems(ret, apiReturnImportDetails, ['returnID', 'returnId', 'ReturnID', 'returnid'])
+              items: extractItems(ret, apiReturnImportDetails, ['returnID', 'returnId', 'ReturnID', 'returnid', 'returnImportId'])
             };
           }) : [];
 
@@ -382,6 +395,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       category: product.category || '',
       unit: product.unit || '',
       brand: product.brand || '',
+      warranty: product.warrantyMonths || 0,
       expectedOutOfStock: product.expectedOutOfStock || ''
     });
   };
@@ -428,6 +442,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.category !== undefined) apiUpdates.category = updates.category;
     if (updates.unit !== undefined) apiUpdates.unit = updates.unit;
     if (updates.brand !== undefined) apiUpdates.brand = updates.brand;
+    if (updates.warrantyMonths !== undefined) apiUpdates.warranty = updates.warrantyMonths;
     if (updates.expectedOutOfStock !== undefined) apiUpdates.expectedOutOfStock = updates.expectedOutOfStock;
 
     await apiService.updateRecord('Products', id, apiUpdates);
@@ -566,7 +581,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             quantity: item.qty,
             price: item.price,
             subTotal: item.qty * item.price,
-            sn: item.sn || ''
+            sn: item.sn || '',
+            warrantyExpiry: item.warrantyExpiry || ''
           });
 
           await apiService.createRecord('StockCards', {
@@ -792,10 +808,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         await apiService.createRecord('ReturnImports', {
           id: order.id,
           createdAt: order.date,
+          date: order.date, // Fallback
           supplierId: order.supplier,
           totalGoods: order.totalGoods,
           discount: order.discount,
           totalAmount: order.total,
+          totalRefund: order.total, // Match user's sheet
           receivedAmount: order.received,
           status: order.status,
           note: order.note || '',
@@ -807,6 +825,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await apiService.createRecord('ReturnImportDetails', {
             id: `${order.id}_${i}`,
             returnID: order.id,
+            returnImportId: order.id, // Match user's sheet
             productId: item.id,
             quantity: item.qty,
             price: item.price,
@@ -865,10 +884,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         await apiService.createRecord('ReturnSales', {
           id: order.id,
           createdAt: order.date,
+          date: order.date, // Fallback
           customerID: order.customer,
           totalGoods: order.totalGoods,
           discount: order.discount,
           totalAmount: order.total,
+          totalRefund: order.total, // Fallback
           paidAmount: order.paid,
           status: order.status,
           note: order.note || '',
@@ -880,6 +901,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await apiService.createRecord('ReturnSalesDetails', {
             id: `${order.id}_${i}`,
             returnID: order.id,
+            returnSalesId: order.id, // Fallback
             productId: item.id,
             quantity: item.qty,
             price: item.price,
@@ -1011,6 +1033,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     await apiService.deleteRecord('Users', id);
   };
 
+  const updatePrintSettings = (settings: PrintSettings) => {
+    setState(prev => ({ ...prev, printSettings: settings }));
+  };
+
   return (
     <AppContext.Provider value={{ 
       ...state, 
@@ -1037,7 +1063,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       updateMaintenanceRecord,
       addUser,
       updateUser,
-      deleteUser
+      deleteUser,
+      updatePrintSettings
     }}>
       {children}
     </AppContext.Provider>

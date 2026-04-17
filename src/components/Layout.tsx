@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight } from 'lucide-react';
+import { Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const Layout: React.FC = () => {
@@ -25,6 +25,7 @@ export const Layout: React.FC = () => {
     if (currentPath === '/maintenance') return 'Bảo hành';
     if (currentPath === '/price-settings') return 'Thiết lập giá';
     if (currentPath === '/users') return 'Người dùng';
+    if (currentPath === '/print-settings') return 'Cài đặt bản in';
     return 'Hệ thống';
   };
 
@@ -94,7 +95,8 @@ export const Layout: React.FC = () => {
         {
           items: [
             { label: 'Quản lý người dùng', path: '/users', icon: <Users size={14} /> },
-            { label: 'Thiết lập cửa hàng', path: '/', icon: <Settings size={14} /> },
+            { label: 'Cài đặt bản in', path: '/print-settings', icon: <Printer size={14} /> },
+            { label: 'Thiết lập giá', path: '/price-settings', icon: <DollarSign size={14} /> },
           ]
         }
       ]
@@ -110,9 +112,9 @@ export const Layout: React.FC = () => {
   ];
 
   return (
-    <div className={`min-h-screen bg-[#f4f7fa] text-slate-800 font-sans ${location.pathname === '/pos' || location.pathname === '/import' ? 'pb-0 pt-0' : 'pb-24 pt-16'} md:pb-0 md:pt-[96px] overflow-x-hidden md:overflow-hidden flex flex-col`}>
+    <div className={`min-h-screen bg-[#f4f7fa] text-slate-800 font-sans print:bg-white print:p-0 ${location.pathname === '/pos' || location.pathname === '/import' ? 'pb-0 pt-0' : 'pb-24 pt-16'} md:pb-0 md:pt-[96px] overflow-x-hidden md:overflow-hidden flex flex-col`}>
       {/* Header */}
-      <header className={`fixed top-0 left-0 right-0 z-50 flex flex-col shadow-sm ${location.pathname === '/pos' || location.pathname === '/import' ? 'hidden md:flex' : ''}`}>
+      <header className={`fixed top-0 left-0 right-0 z-50 flex flex-col shadow-sm print:hidden ${location.pathname === '/pos' || location.pathname === '/import' ? 'hidden md:flex' : ''}`}>
         {/* Top Row */}
         <div className="flex items-center justify-between px-4 md:px-6 h-14 bg-white border-b border-slate-100 relative z-20">
           {/* Mobile Title */}
@@ -254,7 +256,7 @@ export const Layout: React.FC = () => {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 h-[68px] flex justify-around items-center px-1 z-50 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)] ${location.pathname === '/pos' || location.pathname === '/import' ? 'hidden' : ''}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 h-[68px] flex justify-around items-center px-1 z-50 md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)] print:hidden ${location.pathname === '/pos' || location.pathname === '/import' ? 'hidden' : ''}`}>
         {mobileNavItems.map(item => (
           <Link
             key={item.path}

@@ -24,6 +24,7 @@ import { Reports } from './pages/Reports';
 import { CashLedger } from './pages/CashLedger';
 import { Maintenance } from './pages/Maintenance';
 import { PriceSettings } from './pages/PriceSettings';
+import { PrintSettings } from './pages/PrintSettings';
 import Users from './pages/Users';
 import { MoreMenu } from './pages/MoreMenu';
 
@@ -61,6 +62,7 @@ const AppRoutes = () => {
           <Route path="cash-ledger" element={<CashLedger />} />
           <Route path="maintenance" element={<Maintenance />} />
           <Route path="price-settings" element={<PriceSettings />} />
+          <Route path="print-settings" element={<PrintSettings />} />
           <Route path="users" element={<Users />} />
           <Route path="more" element={<MoreMenu />} />
         </Route>

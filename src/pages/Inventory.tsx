@@ -338,9 +338,9 @@ export const Inventory: React.FC = () => {
           {filteredProducts.length === 0 ? (
             <p className="text-center py-20 text-slate-400 italic text-sm">Chưa có sản phẩm trong kho.</p>
           ) : (
-            filteredProducts.map(p => (
+            filteredProducts.map((p, idx) => (
               <div 
-                key={p.id} 
+                key={`${p.id}-${idx}`} 
                 onClick={() => { setSelectedProduct(p); setSerialStatusTab('IN_STOCK'); }}
                 className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-6 hover:shadow-md transition-all cursor-pointer hover:border-blue-300"
               >
@@ -402,16 +402,42 @@ export const Inventory: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
-                  <p className="text-sm text-slate-500 mb-2">Hiện có</p>
-                  <p className="text-3xl font-bold text-slate-800">
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Tồn kho</p>
+                  <p className="text-xl font-bold text-slate-800">
                     {selectedProduct.isService ? '---' : selectedProduct.stock}
                   </p>
                 </div>
-                <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm text-center">
-                  <p className="text-sm text-slate-500 mb-2">Giá bán lẻ</p>
-                  <p className="text-3xl font-bold text-blue-600">{formatNumber(selectedProduct.price)}đ</p>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Giá bán</p>
+                  <p className="text-xl font-bold text-blue-600">{formatNumber(selectedProduct.price)}đ</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Bảo hành</p>
+                  <p className="text-xl font-bold text-slate-800">
+                    {selectedProduct.warrantyMonths ? `${selectedProduct.warrantyMonths}T` : '---'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Specs Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Đơn vị</p>
+                  <p className="text-sm font-bold text-slate-700">{selectedProduct.unit || '---'}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Nhóm hàng</p>
+                  <p className="text-sm font-bold text-slate-700">{selectedProduct.category || '---'}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Thương hiệu</p>
+                  <p className="text-sm font-bold text-slate-700">{selectedProduct.brand || '---'}</p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Dự kiến hết</p>
+                  <p className="text-sm font-bold text-slate-700">{selectedProduct.expectedOutOfStock || '---'}</p>
                 </div>
               </div>
 

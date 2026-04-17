@@ -132,7 +132,8 @@ export const POS: React.FC = () => {
     setPrintData(data);
     setTimeout(() => {
       window.print();
-    }, 100);
+      setTimeout(() => setPrintData(null), 2000);
+    }, 300);
   };
 
   // Search results
@@ -251,7 +252,7 @@ export const POS: React.FC = () => {
   const paidAmount = parseFormattedNumber(paid);
   const debt = paidAmount - finalTotal;
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (autoPrint: boolean = false) => {
     if (cart.length === 0) return alert('Giỏ hàng trống!');
     
     const now = new Date();
@@ -267,6 +268,7 @@ export const POS: React.FC = () => {
       total: finalTotal,
       paid: paidAmount,
       debt: debt < 0 ? Math.abs(debt) : 0,
+      discount: discount,
       items: cart.map(item => {
         const p = products.find(prod => prod.id === item.id);
         let warrantyExpiry = undefined;
@@ -311,7 +313,25 @@ export const POS: React.FC = () => {
       addCashTransaction(newTransaction);
     }
 
-    addInvoice(invoice);
+    await addInvoice(invoice);
+    
+    if (autoPrint) {
+      handlePrint({
+        title: 'HÓA ĐƠN BÁN HÀNG',
+        id: invoice.id,
+        date: invoice.date,
+        partner: invoice.customer,
+        phone: invoice.phone,
+        address: selectedCustomer?.address || '',
+        items: invoice.items.map(i => ({ ...i, total: i.qty * i.price })),
+        total: invoice.total,
+        paid: invoice.paid,
+        debt: invoice.debt || 0,
+        discount: invoice.discount || 0,
+        type: 'HOA_DON'
+      });
+    }
+
     setCart([]);
     setDiscount(0);
     setPaid('');
@@ -387,9 +407,9 @@ export const POS: React.FC = () => {
           </div>
           {productSuggestions.length > 0 ? (
             <div className="absolute top-full left-0 right-0 z-[100] bg-white border border-slate-200 rounded-lg shadow-2xl mt-1 max-h-[400px] overflow-y-auto">
-              {productSuggestions.map(p => (
+              {productSuggestions.map((p, idx) => (
                 <div 
-                  key={p.id} 
+                  key={`${p.id}-${idx}`} 
                   onClick={() => addToCart(p)}
                   className="p-3 border-b border-slate-50 hover:bg-blue-50 flex justify-between items-center cursor-pointer transition-colors"
                 >
@@ -432,7 +452,7 @@ export const POS: React.FC = () => {
             </div>
             {tabs.map((tab, idx) => (
               <div 
-                key={tab.id}
+                key={`${tab.id}-${idx}`}
                 onClick={() => setActiveTab(idx)}
                 className={`h-9 px-4 flex items-center gap-2 rounded-t-lg transition-all cursor-pointer text-xs font-bold relative group ${activeTab === idx ? 'bg-slate-100 text-blue-700' : 'text-white hover:bg-white/10'}`}
               >
@@ -493,7 +513,7 @@ export const POS: React.FC = () => {
                     </tr>
                   ) : (
                     cart.map((item, idx) => (
-                      <React.Fragment key={item.id}>
+                      <React.Fragment key={`${item.id}-${idx}`}>
                         <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
                           <td className="px-4 py-4 text-xs font-bold text-slate-400">{idx + 1}</td>
                           <td className="px-2 py-4">
@@ -608,9 +628,9 @@ export const POS: React.FC = () => {
                   </div>
                   {customerSuggestions.length > 0 && (
                     <div className="absolute top-full left-0 right-0 z-[110] bg-white border border-slate-200 rounded-lg shadow-2xl mt-1 max-h-[200px] overflow-y-auto">
-                      {customerSuggestions.map(c => (
+                      {customerSuggestions.map((c, idx) => (
                         <div 
-                          key={c.phone} 
+                          key={`${c.id || c.phone}-${idx}`} 
                           onClick={() => {
                             setSelectedCustomer(c);
                             setCustomerSuggestions([]);
@@ -730,10 +750,13 @@ export const POS: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="mt-auto p-4 flex gap-2 bg-slate-50 border-t border-slate-200">
-            <button className="flex-1 h-12 bg-slate-500 text-white font-semibold rounded shadow-md hover:bg-slate-600 transition-all flex items-center justify-center gap-2">
+            <button 
+              onClick={() => handleCheckout(true)}
+              className="flex-1 h-12 bg-slate-500 text-white font-semibold rounded shadow-md hover:bg-slate-600 transition-all flex items-center justify-center gap-2"
+            >
               <Printer size={18} /> <span className="hidden sm:inline">In</span>
             </button>
-            <button onClick={handleCheckout} className="flex-[3] h-12 bg-blue-600 text-white font-semibold rounded shadow-md hover:bg-blue-700 transition-all flex items-center justify-center gap-2 text-lg">
+            <button onClick={() => handleCheckout(false)} className="flex-[3] h-12 bg-blue-600 text-white font-semibold rounded shadow-md hover:bg-blue-700 transition-all flex items-center justify-center gap-2 text-lg">
               Thanh toán
             </button>
           </div>
@@ -792,8 +815,8 @@ export const POS: React.FC = () => {
               Chưa có sản phẩm nào trong giỏ hàng
             </div>
           ) : (
-            cart.map(item => (
-              <div key={item.id} className="bg-white p-3 rounded-xl shadow-sm flex gap-3 relative">
+            cart.map((item, idx) => (
+              <div key={`${item.id}-${idx}`} className="bg-white p-3 rounded-xl shadow-sm flex gap-3 relative">
                 <button onClick={() => removeFromCart(item.id)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500 p-1">
                   <X size={16} />
                 </button>
@@ -879,16 +902,19 @@ export const POS: React.FC = () => {
                 onClick={() => {
                   const inv = invoices.find(i => i.id === showSuccessModal.id);
                   if (inv) {
+                    const customer = customers.find(c => (c.name === inv.customer && c.phone === inv.phone) || c.phone === inv.phone);
                     handlePrint({
                       title: 'HÓA ĐƠN BÁN HÀNG',
                       id: inv.id,
                       date: inv.date,
                       partner: inv.customer,
                       phone: inv.phone,
+                      address: customer?.address || '',
                       items: inv.items.map(i => ({ ...i, total: i.qty * i.price })),
-                      total: inv.total + (inv.discount || 0),
-                      paid: inv.total,
+                      total: inv.total,
+                      paid: inv.paid,
                       debt: inv.debt || 0,
+                      discount: inv.discount || 0,
                       type: 'HOA_DON'
                     });
                   }
@@ -1023,9 +1049,9 @@ export const POS: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {(searchTerm.trim() ? productSuggestions : products).map(p => (
+            {(searchTerm.trim() ? productSuggestions : products).map((p, idx) => (
               <div 
-                key={p.id} 
+                key={`${p.id}-${idx}`} 
                 onClick={() => {
                   addToCart(p);
                   setIsMobileProductSearchOpen(false);

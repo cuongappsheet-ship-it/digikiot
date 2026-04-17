@@ -96,7 +96,7 @@ export const ReturnImport: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredOrders.map(o => (
+              {filteredOrders.slice().reverse().map(o => (
                 <tr 
                   key={o.id} 
                   onClick={() => setSelectedOrder(o)}
@@ -133,7 +133,7 @@ export const ReturnImport: React.FC = () => {
           {filteredOrders.length === 0 ? (
             <p className="text-center py-20 text-slate-400 italic text-sm">Chưa có phiếu trả hàng nhập.</p>
           ) : (
-            filteredOrders.map(o => (
+            filteredOrders.slice().reverse().map(o => (
               <div 
                 key={o.id} 
                 onClick={() => setSelectedOrder(o)}

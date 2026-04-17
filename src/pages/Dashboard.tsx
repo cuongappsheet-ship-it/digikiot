@@ -222,8 +222,8 @@ export const Dashboard: React.FC = () => {
     }));
   }, [filteredData, dateRange]);
 
-  const formatMillion = (val: number) => {
-    return (val / 1000000).toFixed(2);
+  const formatKilo = (val: number) => {
+    return formatNumber(val);
   };
 
   return (
@@ -337,55 +337,55 @@ export const Dashboard: React.FC = () => {
 
         {/* Summary Card */}
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1">Doanh thu ({stats.totalOrders} đơn)</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-blue-600 tracking-tighter">{formatMillion(stats.totalRevenue)}</span>
-                <span className="text-sm font-bold text-slate-500">triệu</span>
+          <div className="flex justify-between items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1 truncate">Doanh thu ({stats.totalOrders} đơn)</p>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className="text-2xl sm:text-3xl font-black text-blue-600 tracking-tighter break-all">{formatKilo(stats.totalRevenue)}</span>
+                <span className="text-xs font-bold text-slate-500">đ</span>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0">
               <div className="flex items-center justify-end gap-2 mb-1">
                 <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider">Lợi nhuận</p>
                 <button onClick={() => setShowProfit(!showProfit)} className="text-slate-400">
                   {showProfit ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div className="flex items-baseline justify-end gap-1">
+              <div className="flex items-baseline justify-end gap-1 flex-wrap">
                 {showProfit ? (
                   <>
-                    <span className="text-2xl font-black text-emerald-500 tracking-tighter">{formatMillion(stats.totalProfit)}</span>
-                    <span className="text-xs font-bold text-slate-500">triệu</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-500 tracking-tighter break-all">{formatKilo(stats.totalProfit)}</span>
+                    <span className="text-[10px] font-bold text-slate-500">đ</span>
                   </>
                 ) : (
-                  <span className="text-2xl font-black text-emerald-500 tracking-widest">*** ***</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-500 tracking-widest">*** ***</span>
                 )}
               </div>
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-            <div>
-              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1">Tiền vào (Sổ quỹ)</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-xl font-black text-emerald-600 tracking-tighter">+{formatMillion(stats.totalCashIn)}</span>
-                <span className="text-xs font-bold text-slate-500">triệu</span>
+            <div className="min-w-0">
+              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1 truncate">Tiền vào (Sổ quỹ)</p>
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className="text-lg sm:text-xl font-black text-emerald-600 tracking-tighter break-all">+{formatKilo(stats.totalCashIn)}</span>
+                <span className="text-[10px] font-bold text-slate-500">đ</span>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1">Tiền ra (Sổ quỹ)</p>
-              <div className="flex items-baseline justify-end gap-1">
-                <span className="text-xl font-black text-rose-600 tracking-tighter">-{formatMillion(stats.totalCashOut)}</span>
-                <span className="text-xs font-bold text-slate-500">triệu</span>
+            <div className="text-right min-w-0">
+              <p className="text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1 truncate">Tiền ra (Sổ quỹ)</p>
+              <div className="flex items-baseline justify-end gap-1 flex-wrap">
+                <span className="text-lg sm:text-xl font-black text-rose-600 tracking-tighter break-all">-{formatKilo(stats.totalCashOut)}</span>
+                <span className="text-[10px] font-bold text-slate-500">đ</span>
               </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-50 flex items-center gap-2 text-slate-500">
-            <RotateCcw size={16} className="text-orange-400" />
-            <span className="text-xs font-bold">{stats.returnCount} đơn trả hàng - </span>
-            <span className="text-xs font-black text-slate-800">{formatMillion(stats.totalReturns)} triệu</span>
+          <div className="pt-4 border-t border-slate-50 flex items-center gap-2 text-slate-500 overflow-hidden">
+            <RotateCcw size={16} className="text-orange-400 shrink-0" />
+            <span className="text-xs font-bold truncate">{stats.returnCount} đơn trả hàng - </span>
+            <span className="text-xs font-black text-slate-800 truncate">{formatKilo(stats.totalReturns)} đ</span>
           </div>
         </div>
 

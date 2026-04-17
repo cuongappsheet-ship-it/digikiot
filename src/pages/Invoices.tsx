@@ -7,7 +7,7 @@ import { formatNumber } from '../lib/utils';
 import { PrintTemplate } from '../components/PrintTemplate';
 
 export const Invoices: React.FC = () => {
-  const { invoices, addCashTransaction, updateInvoice } = useAppContext();
+  const { invoices, customers, addCashTransaction, updateInvoice } = useAppContext();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -47,22 +47,29 @@ export const Invoices: React.FC = () => {
   };
 
   const handlePrint = (inv: Invoice) => {
+    const customer = customers.find(c => (c.name === inv.customer && c.phone === inv.phone) || c.phone === inv.phone);
     setPrintData({
       title: 'HÓA ĐƠN BÁN HÀNG',
       id: inv.id,
       date: inv.date,
       partner: inv.customer,
       phone: inv.phone,
+      address: customer?.address || '',
       items: inv.items.map(i => ({ ...i, total: i.qty * i.price })),
-      total: inv.total + (inv.discount || 0),
-      paid: inv.total,
+      total: inv.total,
+      paid: inv.paid,
       debt: inv.debt || 0,
+      discount: inv.discount || 0,
       type: 'HOA_DON'
     });
+    
+    // Use a slightly shorter delay to stay within the user activation window
+    // but long enough for React to render the component to the DOM
     setTimeout(() => {
       window.print();
-      setPrintData(null);
-    }, 100);
+      // Delay clearing print data significantly to ensure browser print dialog has captured it
+      setTimeout(() => setPrintData(null), 2000);
+    }, 300);
   };
 
   const filteredInvoices = (invoices || []).filter(inv => 
@@ -117,9 +124,9 @@ export const Invoices: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredInvoices.slice().reverse().map(inv => (
+                filteredInvoices.slice().reverse().map((inv, idx) => (
                   <tr 
-                    key={inv.id} 
+                    key={`${inv.id}-${idx}`} 
                     onClick={() => setSelectedInvoice(inv)}
                     className="hover:bg-blue-50/50 cursor-pointer transition-colors group"
                   >
@@ -162,9 +169,9 @@ export const Invoices: React.FC = () => {
                 Danh sách hóa đơn trống
               </div>
             ) : (
-              filteredInvoices.slice().reverse().map(inv => (
+              filteredInvoices.slice().reverse().map((inv, idx) => (
                 <div 
-                  key={inv.id} 
+                  key={`${inv.id}-${idx}`} 
                   onClick={() => setSelectedInvoice(inv)}
                   className="p-4 space-y-3 active:bg-blue-50/50 transition-colors"
                 >
@@ -267,12 +274,20 @@ export const Invoices: React.FC = () => {
                       <tr key={idx}>
                         <td className="px-4 py-3">
                           <p className="text-xs font-bold text-slate-800 tracking-tighter">{item.name}</p>
-                          <div className="flex flex-wrap gap-2 mt-0.5">
+                          <div className="flex flex-wrap gap-2 mt-1">
                             {item.sn && (
-                              <p className="text-[8px] text-orange-500 font-black font-mono uppercase">SN: {Array.isArray(item.sn) ? item.sn.join(', ') : item.sn}</p>
+                              <div className="flex flex-wrap gap-1">
+                                {(Array.isArray(item.sn) ? item.sn : item.sn.split(',')).map((sn: string, sIdx: number) => (
+                                  <span key={sIdx} className="text-[13px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded font-mono font-bold border border-orange-100 uppercase">
+                                    {sn.trim()}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                             {item.warrantyExpiry && (
-                              <p className="text-[8px] text-blue-500 font-black uppercase tracking-widest">BH đến: {item.warrantyExpiry}</p>
+                              <span className="text-[11px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold border border-blue-100 uppercase tracking-tight">
+                                BH đến: {item.warrantyExpiry}
+                              </span>
                             )}
                           </div>
                         </td>
@@ -337,9 +352,9 @@ export const Invoices: React.FC = () => {
               </button>
               <button 
                 onClick={() => handlePrint(selectedInvoice)}
-                className="flex-1 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-slate-50 transition-colors"
+                className="flex-1 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg uppercase text-[12px] tracking-widest shadow-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
               >
-                In hóa đơn
+                <Printer size={16} /> In hóa đơn
               </button>
               <button 
                 onClick={() => setSelectedInvoice(null)}

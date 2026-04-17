@@ -15,6 +15,7 @@ import {
   History, 
   ArrowLeftRight, 
   Truck, 
+  Printer,
   Trash2, 
   ShieldCheck, 
   Package,
@@ -56,6 +57,14 @@ export const MoreMenu: React.FC = () => {
         { label: 'Phiếu bảo hành', icon: <ShieldCheck className="text-blue-500" />, path: '/maintenance' },
         { label: 'Xuất dùng nội bộ', icon: <Package className="text-blue-500" />, path: '#' },
       ]
+    },
+    {
+      title: 'Cấu hình',
+      items: [
+        { label: 'Cài đặt bản in', icon: <Printer className="text-blue-500" />, path: '/print-settings' },
+        { label: 'Bảng giá', icon: <Pencil className="text-blue-500" />, path: '/price-settings' },
+        { label: 'Quản lý nhân viên', icon: <User className="text-blue-500" />, path: '/users' },
+      ]
     }
   ];
 
@@ -64,13 +73,13 @@ export const MoreMenu: React.FC = () => {
       {/* User Profile Header */}
       <div className="bg-white p-4 mb-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center text-white overflow-hidden border-2 border-slate-100">
+          <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white overflow-hidden border-2 border-slate-100">
             {/* Placeholder for logo/avatar */}
-            <span className="font-bold text-xl">V</span>
+            <span className="font-bold text-xl">{currentUser?.name?.charAt(0) || 'A'}</span>
           </div>
           <div>
-            <h2 className="font-bold text-lg text-slate-800 leading-tight">{currentUser?.username || 'vinba'}</h2>
-            <p className="text-sm text-slate-400 font-medium">{currentUser?.name || 'Vinba'}</p>
+            <h2 className="font-bold text-lg text-slate-800 leading-tight">{currentUser?.username || 'admin'}</h2>
+            <p className="text-sm text-slate-400 font-medium">{currentUser?.role === 'ADMIN' ? 'Quản trị viên' : 'Nhân viên'}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

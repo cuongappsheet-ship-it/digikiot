@@ -1,5 +1,8 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { formatNumber } from '../lib/utils';
+import { useAppContext } from '../context/AppContext';
+import { numberToWordsVN } from '../lib/numberToWords';
 
 interface PrintTemplateProps {
   title: string;
@@ -7,109 +10,140 @@ interface PrintTemplateProps {
   date: string;
   partner: string;
   phone?: string;
-  items?: { name: string; qty: number; price: number; total: number; sn?: string | string[] }[];
+  address?: string; // Add address if available
+  items?: { name: string; qty: number; price: number; total: number; sn?: string | string[]; unit?: string }[];
   total: number;
   paid: number;
   debt: number;
+  discount?: number;
   note?: string;
   type: 'HOA_DON' | 'PHIEU_NHAP' | 'THU' | 'CHI';
 }
 
 export const PrintTemplate: React.FC<PrintTemplateProps> = ({
-  title, id, date, partner, phone, items, total, paid, debt, note, type
+  title, id, date, partner, phone, address, items, total, paid, debt, discount, note, type
 }) => {
-  return (
-    <div id="print-section" className="hidden print:block p-8 bg-white text-slate-900 font-sans">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-black mb-1">Cửa hàng Vi tính Cường Tín</h1>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Địa chỉ: 123 Đường ABC, Quận XYZ, TP. HCM</p>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Điện thoại: 0901.234.567 - 0988.777.666</p>
+  const { printSettings } = useAppContext();
+
+  const content = (
+    <div id="print-section" className="fixed top-0 left-0 w-full bg-white text-black font-serif z-[999999] opacity-0 pointer-events-none print:relative print:opacity-100 print:z-auto print:pointer-events-auto p-4 md:p-8">
+      {/* Header with QR and Store Info */}
+      <div className="flex justify-between items-start mb-6">
+        <div className="flex gap-4">
+          <div className="w-16 h-16 md:w-20 md:h-20 border-2 border-black flex items-center justify-center font-bold text-[8px] md:text-[10px] text-center p-1">
+            QR CODE<br/>PAYMENT
+          </div>
+          <div className="text-[10px] md:text-[11px] leading-tight">
+            <h1 className="font-bold text-xs md:text-sm uppercase">{printSettings.storeName}</h1>
+            <p>Địa chỉ: {printSettings.address}</p>
+            <p>ĐT: {printSettings.phone} | Email: {printSettings.email}</p>
+            <p>Số tài khoản: {printSettings.bankInfo}</p>
+            <p className="italic text-[9px] md:text-[10px]">(Quý khách có thể quét mã QR bên cạnh để thanh toán chuyển khoản)</p>
+          </div>
+        </div>
       </div>
 
-      <div className="border-t-2 border-b-2 border-slate-900 py-4 mb-8 text-center">
-        <h2 className="text-xl font-black uppercase tracking-widest">{title}</h2>
-        <p className="text-sm font-bold mt-1">Số: {id}</p>
+      <div className="text-center mb-6">
+        <h2 className="text-lg md:text-xl font-bold uppercase">{title}</h2>
+        <p className="text-xs md:text-sm">Số hóa đơn: {id}</p>
+        <p className="text-xs md:text-sm">Ngày {date.split(',')[0]} (hoặc {date})</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
+      <div className="grid grid-cols-2 gap-4 mb-6 text-xs md:text-sm">
         <div>
-          <p className="mb-1"><span className="font-bold uppercase text-[10px] text-slate-400 block">Đối tác:</span> <span className="font-black">{partner}</span></p>
-          {phone && <p><span className="font-bold uppercase text-[10px] text-slate-400 block">Điện thoại:</span> <span className="font-black">{phone}</span></p>}
+          <p><span className="font-bold">Khách hàng / Đối tác:</span> {partner}</p>
+          {address && <p><span className="font-bold">Địa chỉ:</span> {address}</p>}
         </div>
         <div className="text-right">
-          <p><span className="font-bold uppercase text-[10px] text-slate-400 block">Ngày lập:</span> <span className="font-black">{date}</span></p>
+          {phone && <p><span className="font-bold">SĐT:</span> {phone}</p>}
         </div>
       </div>
 
       {items && items.length > 0 && (
-        <table className="w-full mb-8 border-collapse text-sm">
+        <table className="w-full mb-6 border-collapse border border-black text-[10px] md:text-xs">
           <thead>
-            <tr className="border-b-2 border-slate-900">
-              <th className="py-2 text-left font-black uppercase text-[10px]">Tên hàng hóa / Dịch vụ</th>
-              <th className="py-2 text-center font-black uppercase text-[10px]">SL</th>
-              <th className="py-2 text-right font-black uppercase text-[10px]">Đơn giá</th>
-              <th className="py-2 text-right font-black uppercase text-[10px]">Thành tiền</th>
+            <tr className="bg-slate-50">
+              <th className="border border-black py-1 px-1 md:px-2 text-center w-8 md:w-10">STT</th>
+              <th className="border border-black py-1 px-1 md:px-2 text-left">Tên hàng</th>
+              <th className="border border-black py-1 px-1 md:px-2 text-center w-10 md:w-12">ĐVT</th>
+              <th className="border border-black py-1 px-1 md:px-2 text-center w-10 md:w-12">SL</th>
+              <th className="border border-black py-1 px-1 md:px-2 text-right">Đơn giá</th>
+              <th className="border border-black py-1 px-1 md:px-2 text-right">Thành tiền</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => (
-              <React.Fragment key={idx}>
-                <tr className="border-b border-slate-200">
-                  <td className="py-3">
-                    <p className="font-black text-xs">{item.name}</p>
-                    {item.sn && (
-                      <p className="text-[9px] font-mono font-bold text-slate-500 mt-0.5">
-                        SN: {Array.isArray(item.sn) ? item.sn.join(', ') : item.sn}
-                      </p>
-                    )}
-                  </td>
-                  <td className="py-3 text-center font-bold">{item.qty}</td>
-                  <td className="py-3 text-right font-bold">{formatNumber(item.price)}</td>
-                  <td className="py-3 text-right font-black">{formatNumber(item.total)}</td>
-                </tr>
-              </React.Fragment>
+              <tr key={idx}>
+                <td className="border border-black py-1 px-1 md:px-2 text-center">{idx + 1}</td>
+                <td className="border border-black py-1 px-1 md:px-2">
+                  <p className="font-bold">{item.name}</p>
+                  {item.sn && (
+                    <p className="text-[9px] italic">
+                      SN: {Array.isArray(item.sn) ? item.sn.join(', ') : item.sn}
+                    </p>
+                  )}
+                </td>
+                <td className="border border-black py-1 px-1 md:px-2 text-center">{item.unit || 'Cái'}</td>
+                <td className="border border-black py-1 px-1 md:px-2 text-center">{item.qty}</td>
+                <td className="border border-black py-1 px-1 md:px-2 text-right">{formatNumber(item.price)}</td>
+                <td className="border border-black py-1 px-1 md:px-2 text-right font-bold">{formatNumber(item.total)}</td>
+              </tr>
             ))}
           </tbody>
         </table>
       )}
 
-      <div className="flex justify-end mb-12">
-        <div className="w-64 space-y-2 text-sm">
+      <div className="flex justify-end mb-6">
+        <div className="w-64 md:w-80 space-y-1 text-xs md:text-sm">
           <div className="flex justify-between">
-            <span className="font-bold uppercase text-[10px] text-slate-400">Tổng cộng:</span>
-            <span className="font-black">{formatNumber(total)}đ</span>
+            <span className="font-bold">Tổng cộng:</span>
+            <span className="font-bold">{formatNumber(items?.reduce((s, i) => s + i.total, 0) || total)}</span>
+          </div>
+          {discount !== undefined && discount > 0 && (
+            <div className="flex justify-between">
+              <span className="font-bold">Chiết khấu:</span>
+              <span className="font-bold">{formatNumber(discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-black pt-1">
+            <span className="font-bold uppercase">Tổng thanh toán:</span>
+            <span className="font-bold">{formatNumber(total)}</span>
+          </div>
+          <p className="text-[10px] md:text-xs italic mt-1">(Tổng thanh toán bằng chữ: {numberToWordsVN(total)})</p>
+          
+          <div className="flex justify-between pt-4">
+            <span>Khách hàng thanh toán:</span>
+            <span>{formatNumber(paid)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="font-bold uppercase text-[10px] text-slate-400">Đã thanh toán:</span>
-            <span className="font-black">{formatNumber(paid)}đ</span>
+            <span>Nợ cũ:</span>
+            <span>0</span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-slate-900">
-            <span className="font-black uppercase text-xs">Còn nợ:</span>
-            <span className="font-black text-lg">{formatNumber(debt)}đ</span>
+          <div className="flex justify-between border-t border-black pt-1">
+            <span className="font-bold">Số nợ sau hóa đơn:</span>
+            <span className="font-bold">{formatNumber(debt)}</span>
           </div>
         </div>
       </div>
 
-      {note && (
-        <div className="mb-12 text-sm italic">
-          <p><span className="font-bold uppercase text-[10px] text-slate-400 not-italic block mb-1">Ghi chú:</span> {note}</p>
-        </div>
-      )}
+      <div className="text-right text-xs md:text-sm italic mb-10">
+        <p>Ngày {new Date().toLocaleDateString('vi-VN')}</p>
+      </div>
 
-      <div className="grid grid-cols-2 gap-8 text-center text-sm font-bold uppercase tracking-widest mt-20">
+      <div className="grid grid-cols-2 gap-8 text-center text-xs md:text-sm font-bold mt-10">
         <div>
-          <p className="mb-20">Người lập phiếu</p>
-          <p className="text-slate-300">(Ký, họ tên)</p>
+          <p className="mb-20 md:mb-24">Người mua hàng</p>
         </div>
         <div>
-          <p className="mb-20">Khách hàng / Đối tác</p>
-          <p className="text-slate-300">(Ký, họ tên)</p>
+          <p className="mb-20 md:mb-24">Người bán hàng</p>
         </div>
       </div>
 
-      <div className="fixed bottom-8 left-0 right-0 text-center text-[9px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-        Cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của Cường Tín!
+      <div className="text-center text-[10px] md:text-xs italic mt-16 md:mt-20 border-t border-dotted border-black pt-4">
+        {printSettings.footNote}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 };

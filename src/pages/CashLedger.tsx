@@ -162,8 +162,8 @@ export const CashLedger: React.FC = () => {
                   <td colSpan={6} className="p-10 text-center text-slate-400 italic text-sm">Không tìm thấy giao dịch nào.</td>
                 </tr>
               ) : (
-                filteredTransactions.map(t => (
-                  <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
+                filteredTransactions.map((t, idx) => (
+                  <tr key={`${t.id}-${idx}`} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors group">
                     <td className="p-4">
                       <span className="font-semibold text-xs text-slate-800 tracking-tight">{t.id}</span>
                     </td>
@@ -216,9 +216,9 @@ export const CashLedger: React.FC = () => {
                 Không tìm thấy giao dịch nào
               </div>
             ) : (
-              filteredTransactions.map(t => (
+              filteredTransactions.map((t, idx) => (
                 <div 
-                  key={t.id} 
+                  key={`${t.id}-${idx}`} 
                   className="p-4 space-y-3 active:bg-slate-50 transition-colors"
                 >
                   <div className="flex justify-between items-start">

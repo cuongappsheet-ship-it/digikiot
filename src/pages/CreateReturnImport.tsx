@@ -7,7 +7,7 @@ import { generateId } from '../lib/idUtils';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export const CreateReturnImport: React.FC = () => {
-  const { products, suppliers, importOrders, addReturnImportOrder, updateProduct, addStockCard, addCashTransaction, returnImportOrders } = useAppContext();
+  const { products, suppliers, importOrders, addReturnImportOrder, updateImportOrder, updateProduct, addStockCard, addCashTransaction, returnImportOrders, serials } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +19,7 @@ export const CreateReturnImport: React.FC = () => {
   const [overallDiscount, setOverallDiscount] = useState(0);
   const [receivedAmount, setReceivedAmount] = useState<number>(0);
   const [note, setNote] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Handle pre-fill from location state
   useEffect(() => {
@@ -53,8 +54,10 @@ export const CreateReturnImport: React.FC = () => {
   useEffect(() => {
     if (searchTerm.trim()) {
       const filtered = (importOrders || []).filter(o => 
-        (o.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (o.supplier || '').toLowerCase().includes(searchTerm.toLowerCase())
+        !o.returned && (
+          (o.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+          (o.supplier || '').toLowerCase().includes(searchTerm.toLowerCase())
+        )
       );
       setOrderSuggestions(filtered);
     } else {
@@ -129,7 +132,7 @@ export const CreateReturnImport: React.FC = () => {
     }));
   };
 
-  const handleCreateReturn = async () => {
+  const handleCreateReturn = () => {
     if (selectedItems.length === 0) return alert('Vui lòng chọn ít nhất một sản phẩm để trả!');
     if (!selectedSupplier) return alert('Vui lòng chọn nhà cung cấp!');
     
@@ -137,8 +140,32 @@ export const CreateReturnImport: React.FC = () => {
       if (item.hasSerial && item.qty === 0) {
         return alert(`Sản phẩm ${item.name} chưa quét mã Serial!`);
       }
+      if (item.hasSerial && item.serials) {
+        for (let sn of item.serials) {
+          const serialRecord = serials.find(s => s.sn === sn && s.prodId === item.id);
+          if (serialRecord && serialRecord.status === 'SOLD') {
+            return alert(`Hàng đã bán không thể hoàn hàng (Serial: ${sn} của sản phẩm ${item.name})`);
+          }
+        }
+      }
     }
 
+    // Check stock
+    for (const item of selectedItems) {
+      const p = products.find(x => x.id === item.id);
+      if (p) {
+        if ((p.stock || 0) < item.qty) {
+          return alert(`Hàng đã bán không thể hoàn hàng (Sản phẩm ${item.name} chỉ còn ${p.stock} trong kho)!`);
+        }
+      } else {
+        return alert(`Sản phẩm ${item.name} không tồn tại trong hệ thống!`);
+      }
+    }
+
+    setShowConfirmModal(true);
+  };
+
+  const executeReturn = async () => {
     const now = new Date();
     const returnId = returnCode === 'Mã phiếu tự động' ? generateId('THN', returnImportOrders) : returnCode;
     const dateStr = now.toLocaleString('vi-VN');
@@ -146,7 +173,7 @@ export const CreateReturnImport: React.FC = () => {
     const order: ReturnImportOrder = {
       id: returnId,
       date: dateStr,
-      supplier: selectedSupplier.name,
+      supplier: selectedSupplier!.name,
       items: selectedItems.map(item => ({
         id: item.id,
         name: item.name,
@@ -182,14 +209,20 @@ export const CreateReturnImport: React.FC = () => {
         type: 'RECEIPT',
         amount: receivedAmount,
         category: 'OTHER',
-        partner: selectedSupplier.name,
+        partner: selectedSupplier!.name,
         note: `Thu tiền trả hàng nhập ${returnId}`,
         refId: returnId
       };
       addCashTransaction(newTransaction);
     }
 
+    // Mark import order as returned
+    if (selectedOrder) {
+      updateImportOrder(selectedOrder.id, { returned: true });
+    }
+
     addReturnImportOrder(order);
+    setShowConfirmModal(false);
     navigate('/return-import');
   };
 
@@ -445,6 +478,72 @@ export const CreateReturnImport: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100">
+              <h3 className="text-xl font-black text-slate-800">Xác nhận trả hàng</h3>
+              <p className="text-sm text-slate-500 mt-1">Vui lòng kiểm tra lại thông tin trước khi hoàn thành.</p>
+            </div>
+            
+            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-1">Nhà cung cấp</p>
+                <p className="font-bold text-orange-800">{selectedSupplier?.name}</p>
+              </div>
+              
+              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-1">Số tiền hoàn (NCC cần trả)</p>
+                <p className="text-xl font-black text-emerald-700">{formatNumber(finalTotal)}đ</p>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Danh sách hàng trả</p>
+                <div className="space-y-3">
+                  {selectedItems.map((item, idx) => (
+                    <div key={`${item.id}-${idx}`} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="font-bold text-sm text-slate-800">{item.name}</p>
+                        <span className="text-xs font-bold text-slate-600">SL: {item.qty}</span>
+                      </div>
+                      <p className="text-xs text-slate-500">Mã: {item.id}</p>
+                      {item.hasSerial && item.serials && item.serials.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Serial/IMEI:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {item.serials.map((sn, sIdx) => (
+                              <span key={`${sn}-${sIdx}`} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded font-mono text-slate-600">
+                                {sn}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+              <button 
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={executeReturn}
+                className="flex-1 py-3 rounded-xl font-bold text-sm text-white bg-orange-600 hover:bg-orange-700 transition-all shadow-md shadow-orange-200"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

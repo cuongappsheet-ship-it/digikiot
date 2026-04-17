@@ -82,6 +82,7 @@ export interface ImportOrder {
   shippingFee?: number;
   otherCost?: number;
   note?: string;
+  returned?: boolean;
 }
 
 export interface CashTransaction {
@@ -184,6 +185,15 @@ export interface StockCard {
   sn: string[];
 }
 
+export interface PrintSettings {
+  storeName: string;
+  address: string;
+  phone: string;
+  email: string;
+  bankInfo: string;
+  footNote: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   users: User[];
@@ -200,4 +210,5 @@ export interface AppState {
   stockCards: StockCard[];
   posDraft?: POSDraft;
   importDraft?: ImportDraft;
+  printSettings: PrintSettings;
 }

@@ -54,21 +54,25 @@ export const ImportHistory: React.FC = () => {
   };
 
   const handlePrint = (order: ImportOrder) => {
+    const supplier = suppliers.find(s => s.name === order.supplier);
     setPrintData({
       title: 'PHIẾU NHẬP HÀNG',
       id: order.id,
       date: order.date,
       partner: order.supplier,
+      phone: supplier?.phone || '',
+      address: '', // Suppliers sheet usually has address? Let's check Supplier type. 
       items: order.items.map(i => ({ ...i, total: i.qty * i.price })),
       total: order.total,
       paid: order.paid,
       debt: order.debt,
+      discount: order.discount || 0,
       type: 'PHIEU_NHAP'
     });
     setTimeout(() => {
       window.print();
-      setPrintData(null);
-    }, 100);
+      setTimeout(() => setPrintData(null), 2000);
+    }, 300);
   };
 
   const handleOpenOrder = (order: ImportOrder) => {
@@ -163,7 +167,9 @@ export const ImportHistory: React.FC = () => {
                       <p className="font-bold text-slate-800">{order.supplier}</p>
                     </td>
                     <td className="py-4 px-4 text-center">
-                      {order.debt > 0 ? (
+                      {order.returned ? (
+                        <span className="bg-red-100 text-red-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Đã hoàn</span>
+                      ) : order.debt > 0 ? (
                         <span className="bg-orange-100 text-orange-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Còn Nợ</span>
                       ) : (
                         <span className="bg-emerald-100 text-emerald-600 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Hoàn Tất</span>
@@ -205,7 +211,9 @@ export const ImportHistory: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <div className="mb-2">
-                        {order.debt > 0 ? (
+                        {order.returned ? (
+                          <span className="bg-red-100 text-red-600 text-[8px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Đã hoàn</span>
+                        ) : order.debt > 0 ? (
                           <span className="bg-orange-100 text-orange-600 text-[8px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Còn Nợ</span>
                         ) : (
                           <span className="bg-emerald-100 text-emerald-600 text-[8px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Hoàn Tất</span>
@@ -236,7 +244,9 @@ export const ImportHistory: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3">
                     <h3 className="text-xl font-bold text-slate-800">Chi tiết phiếu nhập</h3>
-                    {selectedOrder.debt > 0 ? (
+                    {selectedOrder.returned ? (
+                      <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Đã hoàn</span>
+                    ) : selectedOrder.debt > 0 ? (
                       <span className="bg-orange-100 text-orange-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Còn Nợ</span>
                     ) : (
                       <span className="bg-emerald-100 text-emerald-600 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Hoàn Tất</span>
@@ -321,7 +331,7 @@ export const ImportHistory: React.FC = () => {
                             {item.sn && (
                               <div className="mt-1 flex flex-wrap gap-1">
                                 {(typeof item.sn === 'string' ? item.sn.split(',') : item.sn).map((sn: string, sIdx: number) => (
-                                  <span key={sIdx} className="text-[8px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-mono font-bold border border-orange-100">
+                                  <span key={sIdx} className="text-[13px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded font-mono font-bold border border-orange-100 uppercase">
                                     {sn.trim()}
                                   </span>
                                 ))}
