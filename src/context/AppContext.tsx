@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings } from '../types';
+import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings, ExternalSerial } from '../types';
 import { apiService } from '../services/api';
 import { generateId } from '../lib/idUtils';
 
@@ -25,6 +25,7 @@ interface AppContextProps extends AppState {
   setImportDraft: (draft: ImportDraft) => void;
   addMaintenanceRecord: (record: MaintenanceRecord) => void;
   updateMaintenanceRecord: (id: string, updates: Partial<MaintenanceRecord>) => void;
+  addExternalSerial: (serial: ExternalSerial) => void;
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
@@ -54,6 +55,7 @@ const initialState: AppState = {
   maintenanceRecords: [],
   serials: [],
   stockCards: [],
+  externalSerials: [],
   printSettings: defaultPrintSettings
 };
 
@@ -118,7 +120,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiCash,
           apiMaintenance,
           apiUsers,
-          apiSettings
+          apiSettings,
+          apiExternalSerials
         ] = await Promise.all([
           apiService.readSheet('Products'),
           apiService.readSheet('Customers'),
@@ -136,7 +139,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiService.readSheet('CashLedger'),
           apiService.readSheet('Maintenance'),
           apiService.readSheet('Users'),
-          apiService.readSheet('Settings')
+          apiService.readSheet('Settings'),
+          apiService.readSheet('ExternalSerials')
         ]);
 
         const mappedProducts = apiProducts.length > 0 ? apiProducts.map((p: any) => ({
@@ -366,6 +370,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             cost: Number(m.cost || 0),
             note: String(m.note || ''),
             returnDate: String(m.returnDate || '')
+          })) : [],
+          externalSerials: apiExternalSerials && apiExternalSerials.length > 0 ? apiExternalSerials.map((e: any) => ({
+            id: String(e.id || ''),
+            date: String(e.date || ''),
+            customer: String(e.customer || ''),
+            product: String(e.product || ''),
+            sn: String(e.sn || ''),
+            source: String(e.source || ''),
+            createdBy: String(e.createdBy || ''),
+            note: String(e.note || '')
           })) : [],
           users: apiUsers.length > 0 ? apiUsers : [],
           printSettings: apiSettings.length > 0 ? {
@@ -1041,6 +1055,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     apiService.updateRecord('Maintenance', id, apiUpdates);
   };
 
+  const addExternalSerial = async (serial: ExternalSerial) => {
+    setState(prev => ({ ...prev, externalSerials: [...(prev.externalSerials || []), serial] }));
+    await apiService.createRecord('ExternalSerials', {
+      id: serial.id,
+      date: serial.date,
+      product: serial.product,
+      sn: serial.sn,
+      customer: serial.customer || '',
+      source: serial.source || '',
+      createdBy: serial.createdBy || ''
+    });
+  };
+
   const addUser = async (user: User) => {
     setState(prev => ({ ...prev, users: [...(prev.users || []), user] }));
     await apiService.createRecord('Users', user);
@@ -1104,6 +1131,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setImportDraft,
       addMaintenanceRecord,
       updateMaintenanceRecord,
+      addExternalSerial,
       addUser,
       updateUser,
       deleteUser,

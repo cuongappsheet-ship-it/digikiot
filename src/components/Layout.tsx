@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign } from 'lucide-react';
+import { Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign, Wrench } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 export const Layout: React.FC = () => {
@@ -46,7 +46,6 @@ export const Layout: React.FC = () => {
           items: [
             { label: 'Danh sách hàng hóa', path: '/inventory', icon: <Box size={14} /> },
             { label: 'Thiết lập giá', path: '/price-settings', icon: <Tag size={14} /> },
-            { label: 'Bảo hành, bảo trì', path: '/maintenance', icon: <ShieldCheck size={14} />, badge: 'Mới' },
           ]
         }
       ]
@@ -81,6 +80,19 @@ export const Layout: React.FC = () => {
           items: [
             { label: 'Khách hàng', path: '/customers', icon: <Users size={14} /> },
             { label: 'Nhà cung cấp', path: '/suppliers', icon: <Truck size={14} /> },
+          ]
+        }
+      ]
+    },
+    { 
+      label: 'Sau bán hàng', 
+      type: 'dropdown',
+      id: 'sau-ban-hang',
+      sections: [
+        {
+          items: [
+            { label: 'Bảo hành, bảo trì', path: '/maintenance', icon: <ShieldCheck size={14} /> },
+            { label: 'Nhận sửa chữa', path: '/maintenance?type=repair', icon: <Wrench size={14} /> },
           ]
         }
       ]

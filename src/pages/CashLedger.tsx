@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Wallet, Calendar, ArrowUpRight, ArrowDownLeft, FileText, Printer, X, Plus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { formatNumber, parseFormattedNumber } from '../lib/utils';
+import { formatNumber, parseFormattedNumber, parseDateString } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
 import { PrintTemplate } from '../components/PrintTemplate';
 
@@ -36,7 +36,7 @@ export const CashLedger: React.FC = () => {
       const matchesType = filterType === 'ALL' || t.type === filterType;
       return matchesSearch && matchesType;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => parseDateString(b.date) - parseDateString(a.date));
 
   const totalReceipts = (cashTransactions || [])
     .filter(t => t.type === 'RECEIPT')

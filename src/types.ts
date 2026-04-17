@@ -197,6 +197,16 @@ export interface PrintSettings {
   footNote: string;
 }
 
+export interface ExternalSerial {
+  id: string;
+  date: string;
+  product: string;
+  sn: string;
+  customer?: string;
+  source?: string;
+  createdBy?: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   users: User[];
@@ -211,6 +221,7 @@ export interface AppState {
   maintenanceRecords: MaintenanceRecord[];
   serials: Serial[];
   stockCards: StockCard[];
+  externalSerials: ExternalSerial[];
   posDraft?: POSDraft;
   importDraft?: ImportDraft;
   printSettings: PrintSettings;

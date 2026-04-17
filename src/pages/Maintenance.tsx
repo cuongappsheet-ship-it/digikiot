@@ -1,24 +1,48 @@
-import React, { useState } from 'react';
-import { Search, Plus, Wrench, Clock, CheckCircle, ArrowLeftRight, X, User, Phone, Tag, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Search, Plus, Wrench, Clock, CheckCircle, ArrowLeftRight, X, User, Phone, Tag, AlertCircle, ShoppingBag, Globe } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { MaintenanceRecord } from '../types';
 import { formatNumber, parseFormattedNumber } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
+import { apiService } from '../services/api';
 
 export const Maintenance: React.FC = () => {
-  const { maintenanceRecords, addMaintenanceRecord, updateMaintenanceRecord } = useAppContext();
+  const { maintenanceRecords, addMaintenanceRecord, updateMaintenanceRecord, customers, invoices, externalSerials, addExternalSerial, currentUser } = useAppContext();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<MaintenanceRecord | null>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('type') === 'repair') {
+      setIsModalOpen(true);
+    }
+  }, [location.search]);
+
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   const [productName, setProductName] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [issue, setIssue] = useState('');
   const [cost, setCost] = useState('');
   const [note, setNote] = useState('');
+
+  const [deviceSource, setDeviceSource] = useState<'STORE'|'EXTERNAL'>('STORE');
+  const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
+  const [storeDevices, setStoreDevices] = useState<any[]>([]);
+  const [externalDeviceSearch, setExternalDeviceSearch] = useState('');
+  const [externalDeviceSuggestions, setExternalDeviceSuggestions] = useState<any[]>([]);
+  
+  const [isExternalModalOpen, setIsExternalModalOpen] = useState(false);
+  const [newExtProduct, setNewExtProduct] = useState('');
+  const [newExtSn, setNewExtSn] = useState('');
+  const [newExtSource, setNewExtSource] = useState('');
+  
+  const [deviceWarrantyStatus, setDeviceWarrantyStatus] = useState<{isExpired: boolean, days: number, text: string} | null>(null);
 
   const filteredRecords = (maintenanceRecords || [])
     .filter(r => 
@@ -55,14 +79,163 @@ export const Maintenance: React.FC = () => {
     resetForm();
   };
 
+  const handleAddExternalSerial = async () => {
+    if (!newExtProduct) {
+      alert('Vui lòng nhập tên sản phẩm.');
+      return;
+    }
+    const payload = {
+      id: generateId('EX', externalSerials || []),
+      date: new Date().toLocaleString('vi-VN'),
+      product: newExtProduct,
+      sn: newExtSn,
+      source: newExtSource,
+      customer: customerName, // Link to current customer
+      createdBy: currentUser?.name || 'Admin',
+    };
+    try {
+      await addExternalSerial(payload);
+      setExternalDeviceSearch(payload.product);
+      setProductName(payload.product);
+      setSerialNumber(payload.sn);
+      setIsExternalModalOpen(false);
+      setExternalDeviceSuggestions([]);
+    } catch (err) {
+      console.error(err);
+      alert('Có lỗi khi thêm thiết bị.');
+    }
+  };
+
   const resetForm = () => {
     setCustomerName('');
     setCustomerPhone('');
+    setCustomerAddress('');
     setProductName('');
     setSerialNumber('');
     setIssue('');
     setCost('');
     setNote('');
+    setDeviceSource('STORE');
+    setStoreDevices([]);
+    setCustomerSuggestions([]);
+    setDeviceWarrantyStatus(null);
+    setExternalDeviceSearch('');
+    setExternalDeviceSuggestions([]);
+  };
+
+  const handleCustomerChange = (val: string) => {
+    setCustomerName(val);
+    if (val.trim()) {
+      setCustomerSuggestions(customers.filter(c => c.name.toLowerCase().includes(val.toLowerCase()) || (c.phone && c.phone.includes(val))));
+    } else {
+      setCustomerSuggestions([]);
+    }
+  };
+
+  const handleSelectCustomer = (c: any) => {
+    setCustomerName(c.name);
+    setCustomerPhone(c.phone || '');
+    setCustomerAddress(c.address || '');
+    setCustomerSuggestions([]);
+    
+    // Load store devices
+    const custInvoices = invoices.filter(inv => inv.customer === c.name || (c.phone && inv.phone === c.phone));
+    let devs: any[] = [];
+    custInvoices.forEach(inv => {
+      inv.items.forEach(item => {
+        if (item.sn) {
+           const sns = Array.isArray(item.sn) ? item.sn : item.sn.split(',').map((s:string) => s.trim());
+           sns.forEach((s:string) => {
+             devs.push({ name: item.name, sn: s, date: inv.date, warrantyExpiry: item.warrantyExpiry });
+           });
+        } else {
+           devs.push({ name: item.name, sn: '', date: inv.date, warrantyExpiry: item.warrantyExpiry });
+        }
+      });
+    });
+    setStoreDevices(devs);
+
+    // Auto-fill external devices to suggestions if they exist for this customer
+    const custExternalSerials = (externalSerials || []).filter(s => s.customer === c.name);
+    if (custExternalSerials.length > 0) {
+      setExternalDeviceSuggestions(custExternalSerials);
+      setDeviceSource('EXTERNAL');
+    }
+  };
+
+  const handleSerialNumberChange = (val: string) => {
+    setSerialNumber(val);
+    
+    // Auto-complete if full exact match (opt-in automatic)
+    if (val.trim()) {
+      const matchedExternal = (externalSerials || []).find(s => s.sn.toLowerCase() === val.toLowerCase());
+      if (matchedExternal) {
+        setProductName(matchedExternal.product);
+        setExternalDeviceSearch(matchedExternal.product);
+        setDeviceSource('EXTERNAL');
+      }
+    }
+  };
+
+  const calculateWarranty = (expiryStr: string | undefined | null) => {
+    if (!expiryStr) {
+      setDeviceWarrantyStatus(null);
+      return;
+    }
+    
+    // Parse DD/MM/YYYY text
+    const parts = expiryStr.split(/[\s,]+/);
+    const datePart = parts.find(p => p.includes('/'));
+    if (!datePart) {
+      setDeviceWarrantyStatus(null);
+      return;
+    }
+    
+    const [day, month, year] = datePart.split('/');
+    if (!day || !month || !year) {
+      setDeviceWarrantyStatus(null);
+      return;
+    }
+    
+    const expiryDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 23, 59, 59);
+    const now = new Date();
+    
+    const diffTime = expiryDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays >= 0) {
+      setDeviceWarrantyStatus({
+        isExpired: false,
+        days: diffDays,
+        text: `Còn bảo hành ${diffDays} ngày (đến ${expiryStr})`
+      });
+    } else {
+      setDeviceWarrantyStatus({
+        isExpired: true,
+        days: Math.abs(diffDays),
+        text: `Ngoài bảo hành (hết hạn ${expiryStr})`
+      });
+    }
+  };
+
+  const handleExternalSearch = (val: string) => {
+    setExternalDeviceSearch(val);
+    setProductName(val);
+    if (val.trim()) {
+      setExternalDeviceSuggestions((externalSerials || []).filter(s => 
+        s.product.toLowerCase().includes(val.toLowerCase()) || 
+        (s.sn && s.sn.toLowerCase().includes(val.toLowerCase()))
+      ));
+    } else {
+      setExternalDeviceSuggestions([]);
+    }
+  };
+
+  const handleSelectExternalDevice = (dev: any) => {
+    setExternalDeviceSearch(dev.product);
+    setProductName(dev.product);
+    setSerialNumber(dev.sn || '');
+    setExternalDeviceSuggestions([]);
   };
 
   const getStatusColor = (status: string) => {
@@ -219,18 +392,36 @@ export const Maintenance: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              <div className="relative">
+                <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Tên khách hàng</label>
+                <input 
+                  type="text" 
+                  value={customerName}
+                  onChange={(e) => handleCustomerChange(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400" 
+                  placeholder="Nguyễn Văn A..." 
+                />
+                {customerSuggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+                    {customerSuggestions.map((c, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => handleSelectCustomer(c)}
+                        className="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors"
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{c.name}</p>
+                          <p className="text-[10px] text-slate-500">{c.address}</p>
+                        </div>
+                        <span className="text-xs font-medium text-slate-600">{c.phone}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Tên khách hàng</label>
-                  <input 
-                    type="text" 
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400" 
-                    placeholder="Nguyễn Văn A..." 
-                  />
-                </div>
                 <div>
                   <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Số điện thoại</label>
                   <input 
@@ -241,28 +432,162 @@ export const Maintenance: React.FC = () => {
                     placeholder="090..." 
                   />
                 </div>
+                <div>
+                  <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Địa chỉ</label>
+                  <input 
+                    type="text" 
+                    value={customerAddress}
+                    onChange={(e) => setCustomerAddress(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none mt-1 shadow-inner focus:border-blue-400" 
+                    placeholder="Địa chỉ khách hàng..." 
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Tên thiết bị</label>
-                <input 
-                  type="text" 
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400" 
-                  placeholder="iPhone 13 Pro Max..." 
-                />
-              </div>
+              <div className="bg-slate-50 p-4 border border-slate-200 rounded-xl">
+                <div className="flex items-center gap-4 mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="deviceSource" 
+                      checked={deviceSource === 'STORE'}
+                      onChange={() => setDeviceSource('STORE')}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><ShoppingBag size={14} className="text-slate-400" /> Đã mua tại shop</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="deviceSource" 
+                      checked={deviceSource === 'EXTERNAL'}
+                      onChange={() => {
+                        setDeviceSource('EXTERNAL');
+                        setProductName('');
+                        setSerialNumber('');
+                      }}
+                      className="text-blue-600 focus:ring-blue-500 w-4 h-4"
+                    />
+                    <span className="text-sm font-bold text-slate-700 flex items-center gap-1.5"><Globe size={14} className="text-slate-400" /> Máy nơi khác</span>
+                  </label>
+                </div>
 
-              <div>
-                <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Số Serial / IMEI (nếu có)</label>
-                <input 
-                  type="text" 
-                  value={serialNumber}
-                  onChange={(e) => setSerialNumber(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400" 
-                  placeholder="SN..." 
-                />
+                {deviceSource === 'STORE' ? (
+                  <div className="space-y-3">
+                    {storeDevices.length > 0 ? (
+                      <div>
+                        <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1 mb-1 block">Chọn máy đã mua</label>
+                        <select 
+                          className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm font-semibold outline-none shadow-sm focus:border-blue-400"
+                          onChange={(e) => {
+                            if (!e.target.value) return;
+                            const idx = parseInt(e.target.value);
+                            const d = storeDevices[idx];
+                            if (d) {
+                               setProductName(d.name);
+                               setSerialNumber(d.sn || '');
+                               calculateWarranty(d.warrantyExpiry);
+                            }
+                          }}
+                          defaultValue=""
+                        >
+                          <option value="" disabled>-- Chọn thiết bị trong lịch sử mua hàng --</option>
+                          {storeDevices.map((d, idx) => (
+                            <option key={idx} value={idx}>
+                              {d.name} {d.sn && `(SN: ${d.sn})`} - Mua: {d.date.split(' ')[0]}
+                            </option>
+                          ))}
+                        </select>
+
+                        {deviceWarrantyStatus && (
+                          <div className={`mt-3 p-3 rounded-lg text-xs font-semibold flex items-center gap-2 border ${deviceWarrantyStatus.isExpired ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+                            {deviceWarrantyStatus.isExpired ? <AlertCircle size={16} className="text-red-500" /> : <CheckCircle size={16} className="text-emerald-500" />}
+                            <span>{deviceWarrantyStatus.text}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-white border border-dashed border-slate-300 rounded-lg text-center text-xs text-slate-500 italic">
+                        {customerName ? 'Khách hàng này chưa có lịch sử mua máy tại cửa hàng.' : 'Vui lòng chọn khách hàng để tra cứu lịch sử mua.'}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Tên thiết bị ngoài</label>
+                      <input 
+                        type="text" 
+                        value={externalDeviceSearch}
+                        onFocus={() => {
+                          if (!externalDeviceSearch) handleExternalSearch('');
+                        }}
+                        onChange={(e) => handleExternalSearch(e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm font-semibold outline-none shadow-sm focus:border-blue-400" 
+                        placeholder="Tìm máy đã thêm hoặc nhập tên mới..." 
+                      />
+                      {(externalDeviceSuggestions.length > 0 || externalDeviceSearch) && (
+                        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-lg shadow-xl mt-1 max-h-60 flex flex-col overflow-hidden">
+                          <div className="overflow-y-auto flex-1">
+                            {externalDeviceSuggestions.map((dev, idx) => (
+                              <div 
+                                key={idx} 
+                                onClick={() => handleSelectExternalDevice(dev)}
+                                className="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
+                              >
+                                <p className="text-sm font-bold text-slate-800">{dev.product}</p>
+                                {dev.sn && <p className="text-[10px] text-slate-500 font-mono mt-0.5">SN: {dev.sn}</p>}
+                                {dev.source && <p className="text-[10px] text-slate-400 mt-0.5">Nơi bán: {dev.source}</p>}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div 
+                            onClick={() => {
+                              setNewExtProduct(externalDeviceSearch);
+                              setNewExtSn('');
+                              setNewExtSource('');
+                              setIsExternalModalOpen(true);
+                              setExternalDeviceSuggestions([]);
+                            }}
+                            className="p-3 bg-blue-50 text-blue-700 font-bold text-sm text-center cursor-pointer hover:bg-blue-100 transition-colors border-t border-blue-100 flex items-center justify-center gap-2"
+                          >
+                            <Plus size={16} /> Thêm mới thiết bị "{externalDeviceSearch || 'ngoài'}"
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Số Serial / IMEI (nếu có)</label>
+                      <input 
+                        type="text" 
+                        value={serialNumber}
+                        onChange={(e) => handleSerialNumberChange(e.target.value)}
+                        className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm font-semibold outline-none shadow-sm focus:border-blue-400" 
+                        placeholder="Nhập SN để tìm nhanh thiết bị ngoài..." 
+                      />
+                      {serialNumber && (externalSerials || []).filter(s => s.sn.toLowerCase().includes(serialNumber.toLowerCase()) && s.sn.toLowerCase() !== serialNumber.toLowerCase()).length > 0 && (
+                         <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-lg shadow-xl mt-1 max-h-40 overflow-y-auto">
+                            {(externalSerials || []).filter(s => s.sn.toLowerCase().includes(serialNumber.toLowerCase()) && s.sn.toLowerCase() !== serialNumber.toLowerCase()).map((dev, idx) => (
+                               <div 
+                                 key={idx} 
+                                 onClick={() => {
+                                    setSerialNumber(dev.sn);
+                                    setProductName(dev.product);
+                                    setExternalDeviceSearch(dev.product);
+                                    setDeviceSource('EXTERNAL');
+                                 }}
+                                 className="p-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
+                               >
+                                 <p className="text-[11px] text-slate-500 font-mono font-bold">SN: {dev.sn}</p>
+                                 <p className="text-xs font-semibold text-slate-800 mt-0.5">{dev.product}</p>
+                               </div>
+                            ))}
+                         </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -382,6 +707,69 @@ export const Maintenance: React.FC = () => {
             
             <div className="p-6 border-t border-slate-100 bg-slate-50/50">
               <button onClick={() => setSelectedRecord(null)} className="w-full py-3 bg-slate-900 text-white font-semibold rounded-lg text-[10px] tracking-wide">Đóng chi tiết</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Add External Serial Modal */}
+      {isExternalModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
+          <div className="bg-white md:rounded-2xl shadow-xl w-full h-full md:h-auto md:max-w-sm flex flex-col md:overflow-hidden border border-slate-200">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <Globe size={16} className="text-blue-600" />
+                Thêm máy ngoài
+              </h3>
+              <button onClick={() => setIsExternalModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-2">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 flex-1 overflow-y-auto space-y-4">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tên sản phẩm *</label>
+                <input 
+                  type="text" 
+                  value={newExtProduct}
+                  onChange={(e) => setNewExtProduct(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 focus:border-blue-400" 
+                  placeholder="Ex: iPhone 12 Pro..." 
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Số Serial / IMEI</label>
+                <input 
+                  type="text" 
+                  value={newExtSn}
+                  onChange={(e) => setNewExtSn(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 focus:border-blue-400" 
+                  placeholder="Nhập SN/IMEI nếu có..." 
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nơi bán / Nguồn gốc</label>
+                <input 
+                  type="text" 
+                  value={newExtSource}
+                  onChange={(e) => setNewExtSource(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none mt-1 focus:border-blue-400" 
+                  placeholder="FPT Shop, TGDĐ..." 
+                />
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-100 flex gap-3 shrink-0 mb-4 md:mb-0">
+              <button 
+                onClick={() => setIsExternalModalOpen(false)} 
+                className="flex-1 py-3 bg-white text-slate-600 font-semibold rounded-lg text-xs border border-slate-200 hover:bg-slate-50"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleAddExternalSerial}
+                className="flex-[2] py-3 bg-blue-600 text-white font-semibold rounded-lg text-xs hover:bg-blue-700 shadow shadow-blue-200"
+              >
+                Lưu vào danh sách
+              </button>
             </div>
           </div>
         </div>
