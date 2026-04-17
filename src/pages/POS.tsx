@@ -1103,7 +1103,7 @@ export const POS: React.FC = () => {
         </div>
       )}
 
-      {/* Add Customer Modal */}
+    {/* Add Customer Modal */}
       {isCustomerModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm print:hidden">
           <div className="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden p-8">
@@ -1121,13 +1121,20 @@ export const POS: React.FC = () => {
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-blue-400 shadow-inner" 
                 placeholder="Số điện thoại..." 
               />
+              <input 
+                id="new-cust-address"
+                type="text" 
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:border-blue-400 shadow-inner" 
+                placeholder="Địa chỉ..." 
+              />
               <button 
                 onClick={() => {
                   const name = (document.getElementById('new-cust-name') as HTMLInputElement).value;
                   const phone = (document.getElementById('new-cust-phone') as HTMLInputElement).value;
+                  const address = (document.getElementById('new-cust-address') as HTMLInputElement).value;
                   if (name && phone) {
-                    addCustomer({ name, phone });
-                    setSelectedCustomer({ name, phone });
+                    addCustomer({ name, phone, address });
+                    setSelectedCustomer({ name, phone, address });
                     setIsCustomerModalOpen(false);
                   }
                 }}

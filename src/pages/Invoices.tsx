@@ -260,18 +260,34 @@ export const Invoices: React.FC = () => {
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-center gap-3">
-                  <Calendar className="text-slate-400" size={18} />
+                  <Calendar className="text-slate-400 shrink-0" size={18} />
                   <div>
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Ngày lập phiếu</p>
                     <p className="text-xs font-bold text-slate-800">{selectedInvoice.date}</p>
                   </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex items-center gap-3">
-                  <User className="text-slate-400" size={18} />
-                  <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Khách hàng</p>
-                    <p className="text-xs font-bold text-slate-800">{selectedInvoice.customer}</p>
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <User className="text-slate-400 shrink-0" size={18} />
+                    <div className="flex-1">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Khách hàng</p>
+                      <p className="text-xs font-bold text-slate-800">{selectedInvoice.customer}</p>
+                    </div>
                   </div>
+                  {(selectedInvoice.phone || customers.find(c => c.name === selectedInvoice.customer)?.address) && (
+                    <div className="mt-2 pt-2 border-t border-slate-200/60 pl-8 space-y-1">
+                      {selectedInvoice.phone && (
+                        <p className="text-xs text-slate-600 font-medium">
+                          <span className="text-slate-400 mr-1">ĐT:</span> {selectedInvoice.phone}
+                        </p>
+                      )}
+                      {customers.find(c => c.name === selectedInvoice.customer)?.address && (
+                        <p className="text-xs text-slate-600 font-medium">
+                          <span className="text-slate-400 mr-1">Đ/C:</span> {customers.find(c => c.name === selectedInvoice.customer)?.address}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
