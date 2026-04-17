@@ -54,6 +54,8 @@ export interface Invoice {
   total: number;
   paid: number;
   debt: number;
+  oldDebt?: number;
+  totalDebt?: number;
   items: InvoiceItem[];
   discount?: number;
   note?: string;

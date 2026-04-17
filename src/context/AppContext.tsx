@@ -202,6 +202,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               total,
               paid,
               debt,
+              oldDebt: inv.oldDebt !== undefined ? Number(inv.oldDebt) : undefined,
+              totalDebt: inv.totalDebt !== undefined ? Number(inv.totalDebt) : undefined,
               discount: Number(inv.discount || 0),
               note: String(inv.note || ''),
               items: extractItems(inv, apiInvoiceDetails, ['invoiceID', 'invoiceId', 'InvoiceID', 'invoiceid'])
@@ -529,9 +531,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addInvoice = async (invoice: Invoice) => {
+    // Find current customer to get old debt
+    const customer = state.customers.find(c => c.name === invoice.customer);
+    const oldDebt = customer?.debt || 0;
+    const totalDebt = oldDebt + invoice.debt;
+
     const newInvoice = {
       ...invoice,
-      id: invoice.id || generateId('HD', state.invoices || [])
+      id: invoice.id || generateId('HD', state.invoices || []),
+      oldDebt,
+      totalDebt
     };
 
     // Optimistic update
@@ -577,6 +586,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           finalAmount: newInvoice.total,
           paidAmount: newInvoice.paid,
           debt: newInvoice.debt,
+          oldDebt: newInvoice.oldDebt,
+          totalDebt: newInvoice.totalDebt,
           paymentMethod: 'CASH',
           status: newInvoice.debt > 0 ? 'Còn nợ' : 'Hoàn tất',
           note: newInvoice.note || '',
