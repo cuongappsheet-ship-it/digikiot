@@ -62,8 +62,10 @@ export const Invoices: React.FC = () => {
       new Date(r.date) < dateOfThisInvoice
     );
 
-    const oldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
+    const calculatedOldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
                     customerReturns.reduce((sum, r) => sum + (r.total - r.paid), 0);
+    
+    const oldDebt = inv.oldDebt !== undefined ? inv.oldDebt : calculatedOldDebt;
 
     setPrintData({
       title: 'HÓA ĐƠN BÁN HÀNG',

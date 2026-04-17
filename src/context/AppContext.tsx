@@ -628,6 +628,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     })();
 
     updateCustomerStats(newInvoice.customer);
+    return newInvoice;
   };
 
   const updateInvoice = async (id: string, updates: Partial<Invoice>) => {

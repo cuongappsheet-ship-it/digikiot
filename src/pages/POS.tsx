@@ -313,23 +313,22 @@ export const POS: React.FC = () => {
       addCashTransaction(newTransaction);
     }
 
-    await addInvoice(invoice);
+    const savedInvoice = await addInvoice(invoice);
     
-    if (autoPrint) {
-      const oldDebt = selectedCustomer?.debt || 0;
+    if (autoPrint && savedInvoice) {
       handlePrint({
         title: 'HÓA ĐƠN BÁN HÀNG',
-        id: invoice.id,
-        date: invoice.date,
-        partner: invoice.customer,
-        phone: invoice.phone,
+        id: savedInvoice.id,
+        date: savedInvoice.date,
+        partner: savedInvoice.customer,
+        phone: savedInvoice.phone,
         address: selectedCustomer?.address || '',
-        items: invoice.items.map(i => ({ ...i, total: i.qty * i.price })),
-        total: invoice.total,
-        paid: invoice.paid,
-        debt: invoice.debt || 0,
-        oldDebt: oldDebt,
-        discount: invoice.discount || 0,
+        items: savedInvoice.items.map(i => ({ ...i, total: i.qty * i.price })),
+        total: savedInvoice.total,
+        paid: savedInvoice.paid,
+        debt: savedInvoice.debt || 0,
+        oldDebt: savedInvoice.oldDebt || 0,
+        discount: savedInvoice.discount || 0,
         type: 'HOA_DON'
       });
     }
@@ -915,8 +914,9 @@ export const POS: React.FC = () => {
                       r.customer === inv.customer && 
                       new Date(r.date) < new Date(inv.date)
                     );
-                    const oldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
+                    const calculatedOldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
                                     customerReturns.reduce((sum, r) => sum + (r.total - r.paid), 0);
+                    const oldDebt = inv.oldDebt !== undefined ? inv.oldDebt : calculatedOldDebt;
 
                     handlePrint({
                       title: 'HÓA ĐƠN BÁN HÀNG',
