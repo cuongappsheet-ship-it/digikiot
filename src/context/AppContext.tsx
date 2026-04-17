@@ -274,7 +274,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             location: String(c.location || ''),
             note: String(c.note || ''),
             createdBy: String(c.createdBy || ''),
-            createdAt: String(c.createdAt || '')
+            createdAt: String(c.createdAt || ''),
+            totalSpent: Number(c.totalSpent) || 0,
+            debt: Number(c.debt) || 0
           })) : [],
           suppliers: apiSuppliers.length > 0 ? apiSuppliers.map((s: any) => ({
             id: String(s.id || ''),
@@ -469,7 +471,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const totalSpent = customerInvoices.reduce((sum, inv) => sum + inv.total, 0) - 
                          customerReturns.reduce((sum, ret) => sum + ret.total, 0);
       
-      const debt = customerInvoices.reduce((sum, inv) => sum + inv.debt, 0);
+      const debt = customerInvoices.reduce((sum, inv) => sum + inv.debt, 0) - 
+                   customerReturns.reduce((sum, ret) => sum + (ret.total - ret.paid), 0);
 
       const updatedCustomer = { ...customer, totalSpent, debt };
 

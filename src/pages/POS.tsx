@@ -9,7 +9,7 @@ import { PrintTemplate } from '../components/PrintTemplate';
 
 export const POS: React.FC = () => {
   const navigate = useNavigate();
-  const { products, customers, invoices, cashTransactions, addInvoice, addCustomer, updateProduct, serials, addStockCard, addCashTransaction, posDraft, setPOSDraft } = useAppContext();
+  const { products, customers, invoices, cashTransactions, addInvoice, addCustomer, updateProduct, serials, addStockCard, addCashTransaction, posDraft, setPOSDraft, returnSalesOrders } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Initialize from draft or defaults
@@ -911,7 +911,12 @@ export const POS: React.FC = () => {
                       i.customer === inv.customer && 
                       (new Date(i.date) < new Date(inv.date) || (i.date === inv.date && i.id < inv.id))
                     );
-                    const oldDebt = customerInvoices.reduce((sum, i) => sum + (i.total - i.paid), 0);
+                    const customerReturns = (returnSalesOrders || []).filter(r => 
+                      r.customer === inv.customer && 
+                      new Date(r.date) < new Date(inv.date)
+                    );
+                    const oldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
+                                    customerReturns.reduce((sum, r) => sum + (r.total - r.paid), 0);
 
                     handlePrint({
                       title: 'HÓA ĐƠN BÁN HÀNG',

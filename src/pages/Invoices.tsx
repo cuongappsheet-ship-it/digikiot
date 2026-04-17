@@ -7,7 +7,7 @@ import { formatNumber } from '../lib/utils';
 import { PrintTemplate } from '../components/PrintTemplate';
 
 export const Invoices: React.FC = () => {
-  const { invoices, customers, addCashTransaction, updateInvoice } = useAppContext();
+  const { invoices, customers, addCashTransaction, updateInvoice, returnSalesOrders } = useAppContext();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -48,14 +48,22 @@ export const Invoices: React.FC = () => {
 
   const handlePrint = (inv: Invoice) => {
     const customer = customers.find(c => (c.name === inv.customer && c.phone === inv.phone) || c.phone === inv.phone);
+    const dateOfThisInvoice = new Date(inv.date);
     
     // Calculate total debt of this customer from ALL invoices BEFORE this one
-    // We sum the debt component of each invoice.
     const customerInvoices = invoices.filter(i => 
       i.customer === inv.customer && 
-      (new Date(i.date) < new Date(inv.date) || (i.date === inv.date && i.id < inv.id))
+      (new Date(i.date) < dateOfThisInvoice || (i.date === inv.date && i.id < inv.id))
     );
-    const oldDebt = customerInvoices.reduce((sum, i) => sum + (i.total - i.paid), 0);
+    
+    // Also consider returns before this invoice if any
+    const customerReturns = (returnSalesOrders || []).filter(r => 
+      r.customer === inv.customer && 
+      new Date(r.date) < dateOfThisInvoice
+    );
+
+    const oldDebt = customerInvoices.reduce((sum, i) => sum + i.debt, 0) - 
+                    customerReturns.reduce((sum, r) => sum + (r.total - r.paid), 0);
 
     setPrintData({
       title: 'HÓA ĐƠN BÁN HÀNG',

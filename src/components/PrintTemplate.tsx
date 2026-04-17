@@ -146,23 +146,23 @@ export const PrintTemplate: React.FC<PrintTemplateProps> = ({
               <span>-{formatNumber(discount)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl">
-            <span className="font-black text-slate-900 uppercase text-xs">Tổng đơn hàng:</span>
-            <span className="text-xl font-black text-blue-600">{formatNumber(total)}</span>
+          <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl text-white">
+            <span className="font-black uppercase text-xs">Tổng đơn hàng:</span>
+            <span className="text-xl font-black">{formatNumber(total)}</span>
           </div>
           
-          <div className="p-4 space-y-2 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="p-4 space-y-2 bg-slate-50 rounded-xl border border-slate-200">
             <div className="flex justify-between text-sm text-slate-600">
-              <span className="font-medium">Nợ cũ trước đơn này:</span>
-              <span className="font-bold underline decoration-slate-300">{formatNumber(oldDebt)}</span>
+              <span className="font-medium">Nợ cũ trước hóa đơn này:</span>
+              <span className="font-bold underline decoration-slate-300 tracking-tighter">{formatNumber(oldDebt)}</span>
             </div>
             <div className="flex justify-between text-sm text-slate-600">
-              <span className="font-medium">Đã thanh toán hôm nay:</span>
-              <span className="font-bold text-emerald-600">{formatNumber(paid)}</span>
+              <span className="font-medium">Số tiền thanh toán hôm nay:</span>
+              <span className="font-bold text-emerald-600 tracking-tighter">{formatNumber(paid)}</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-              <span className="font-black text-slate-900 uppercase text-[10px]">Tổng nợ sau bán hàng:</span>
-              <span className="text-lg font-black text-slate-900">{formatNumber(oldDebt + (total - paid))}</span>
+            <div className="flex justify-between items-center pt-2 border-t border-slate-300">
+              <span className="font-black text-slate-900 uppercase text-[10px]">Số nợ sau hóa đơn:</span>
+              <span className="text-2xl font-black text-slate-900 tracking-tighter">{formatNumber(oldDebt + (total - paid))}</span>
             </div>
           </div>
           
