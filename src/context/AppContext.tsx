@@ -171,7 +171,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiTasks,
           apiTelegramSettings,
           apiWifiRecords,
-          apiCameraAccounts
+          apiCameraAccounts,
+          apiWallets,
+          apiWalletTransactions
         ] = await Promise.all([
           apiService.readSheet('Products'),
           apiService.readSheet('Customers'),
@@ -196,7 +198,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiService.readSheet('Tasks'),
           apiService.readSheet('TelegramSettings'),
           apiService.readSheet('WifiRecords'),
-          apiService.readSheet('CameraAccounts')
+          apiService.readSheet('CameraAccounts'),
+          apiService.readSheet('Wallets'),
+          apiService.readSheet('WalletTransactions')
         ]);
 
         const mappedProducts = apiProducts.length > 0 ? apiProducts.map((p: any) => ({
@@ -520,7 +524,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             url: String(img.url || img['URL'] || ''),
             fileType: String(img.fileType || img['Định dạng'] || img.format || ''),
             category: String(img.category || img['Loại'] || img.type || 'KHÁC')
-          }))
+          })),
+          wallets: apiWallets && apiWallets.length > 0 ? apiWallets.map((w: any) => ({
+            id: String(w.id || ''),
+            name: String(w.name || ''),
+            type: (w.type === 'CASH' || w.type === 'BANK' || w.type === 'EWALLET') ? w.type : 'CASH',
+            balance: Number(w.balance || 0),
+            accountNumber: w.accountNumber ? String(w.accountNumber) : undefined,
+            bankName: w.bankName ? String(w.bankName) : undefined,
+            ownerName: w.ownerName ? String(w.ownerName) : undefined,
+            isActive: w.isActive === true || w.isActive === 'TRUE' || w.isActive === 'true' || String(w.isActive).toLowerCase() === 'true',
+            icon: String(w.icon || ''),
+            color: String(w.color || ''),
+            backgroundImage: String(w.backgroundImage || w.background || '')
+          })) : [],
+          walletTransactions: apiWalletTransactions && apiWalletTransactions.length > 0 ? apiWalletTransactions.map((t: any) => ({
+            id: String(t.id || ''),
+            walletId: String(t.walletId || ''),
+            type: t.type === 'IN' || t.type === 'OUT' ? t.type : 'OUT',
+            amount: Number(t.amount || 0),
+            description: String(t.description || ''),
+            date: String(t.date || ''),
+            relatedType: t.relatedType || undefined,
+            relatedId: t.relatedId ? String(t.relatedId) : undefined
+          })) : []
         }));
       } catch (error) {
         console.error("Failed to load data from Google Sheets:", error);

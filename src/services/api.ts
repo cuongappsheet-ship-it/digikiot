@@ -11,8 +11,15 @@ export const apiService = {
         ? `${IMAGE_API_URL}?sheetId=${IMAGE_SHEET_ID}&page=1&pageSize=100` 
         : `${API_URL}?action=read&sheet=${sheetName}`;
         
-      const response = await fetch(url);
-      const result = await response.json();
+      const response = await fetch(url, { redirect: "follow" });
+      const textResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResponse);
+      } catch (e) {
+        console.error(`Failed to parse JSON for ${sheetName}. Response was:`, textResponse.substring(0, 100));
+        throw e;
+      }
       console.log(`[API] readSheet(${sheetName}) response:`, result);
       
       if (result.success === true || result.status === 'success' || result.data) {
