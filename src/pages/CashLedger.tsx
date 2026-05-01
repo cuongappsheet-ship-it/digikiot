@@ -8,7 +8,7 @@ import { generateId } from '../lib/idUtils';
 import { PrintTemplate } from '../components/PrintTemplate';
 
 export const CashLedger: React.FC = () => {
-  const { cashTransactions, addCashTransaction } = useAppContext();
+  const { cashTransactions, addCashTransaction, wallets } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'RECEIPT' | 'PAYMENT'>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +22,7 @@ export const CashLedger: React.FC = () => {
   const [partner, setPartner] = useState('');
   const [note, setNote] = useState('');
   const [category, setCategory] = useState<any>('OTHER');
+  const [walletId, setWalletId] = useState<string>('');
   
   // Print State
   const [printData, setPrintData] = useState<any>(null);
@@ -66,8 +67,8 @@ export const CashLedger: React.FC = () => {
   const balance = totalReceipts - totalPayments;
 
   const handleAddTransaction = () => {
-    if (!amount || !partner || !note) {
-      alert('Vui lòng nhập đủ thông tin');
+    if (!amount || !partner || !note || !walletId) {
+      alert('Vui lòng nhập đủ thông tin và chọn Ví/Ngân hàng');
       return;
     }
 
@@ -82,7 +83,8 @@ export const CashLedger: React.FC = () => {
       amount: parseFormattedNumber(amount) || 0,
       partner,
       note,
-      category
+      category,
+      walletId: walletId || undefined
     });
 
     setIsModalOpen(false);
@@ -90,6 +92,7 @@ export const CashLedger: React.FC = () => {
     setPartner('');
     setNote('');
     setCategory('OTHER');
+    setWalletId('');
   };
 
   return (
@@ -378,6 +381,24 @@ export const CashLedger: React.FC = () => {
                   className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium outline-none mt-1 shadow-inner focus:border-blue-400 h-24" 
                   placeholder="Lý do thu/chi..." 
                 />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-semibold text-slate-400 tracking-wider ml-1">Ví / Ngân hàng thực hiện</label>
+                {wallets.length === 0 ? (
+                   <div className="text-rose-500 font-medium text-xs mt-1">Bạn chưa cấu hình Ví/Ngân hàng</div>
+                ) : (
+                  <select 
+                    value={walletId}
+                    onChange={(e) => setWalletId(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400"
+                  >
+                    <option value="">-- Chọn ví (Bắt buộc) --</option>
+                    {wallets.map(w => (
+                      <option key={w.id} value={w.id}>{w.name} ({w.type === 'CASH' ? 'Tiền mặt' : 'Ngân hàng'})</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>

@@ -15,7 +15,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 export const POS: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { products, customers, invoices, cashTransactions, addInvoice, updateInvoice, deleteInvoice, addCustomer, updateProduct, serials, addStockCard, addCashTransaction, posDraft, setPOSDraft, returnSalesOrders, tasks, updateTask } = useAppContext();
+  const { products, customers, invoices, cashTransactions, addInvoice, updateInvoice, deleteInvoice, addCustomer, updateProduct, serials, addStockCard, addCashTransaction, posDraft, setPOSDraft, returnSalesOrders, tasks, updateTask, wallets } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   
@@ -112,7 +112,7 @@ export const POS: React.FC = () => {
 
   // Current tab helper
   const currentTab = tabs[activeTab] || tabs[0];
-  const { cart, discount, paid, selectedCustomer, note, paymentMethod, editingInvoiceId, date, taskId: tabTaskId } = currentTab;
+  const { cart, discount, paid, selectedCustomer, note, paymentMethod, walletId, editingInvoiceId, date, taskId: tabTaskId } = currentTab;
 
   // Setters for current tab
   const updateCurrentTab = (updates: Partial<typeof currentTab>) => {
@@ -129,6 +129,7 @@ export const POS: React.FC = () => {
   const setSelectedCustomer = (val: Customer | null) => updateCurrentTab({ selectedCustomer: val });
   const setNote = (val: string) => updateCurrentTab({ note: val });
   const setPaymentMethod = (val: 'CASH' | 'TRANSFER' | 'CARD' | 'WALLET') => updateCurrentTab({ paymentMethod: val });
+  const setWalletId = (val: string) => updateCurrentTab({ walletId: val });
   const setTransactionDate = (val: string) => updateCurrentTab({ date: val });
 
   // Modals
@@ -456,7 +457,8 @@ export const POS: React.FC = () => {
           category: 'SALES_REVENUE',
           partner: customerName,
           note: `Thu tiền hóa đơn ${invoiceId}`,
-          refId: invoiceId
+          refId: invoiceId,
+          walletId: currentTab.walletId
         };
         addCashTransaction(newTransaction);
       }
@@ -925,28 +927,29 @@ export const POS: React.FC = () => {
               </div>
             </div>
 
-            {/* Payment Methods */}
-            <div className="flex flex-wrap gap-4 py-2">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input 
-                  type="radio" 
-                  name="payment" 
-                  checked={paymentMethod === 'CASH'} 
-                  onChange={() => setPaymentMethod('CASH')}
-                  className="w-4 h-4 text-blue-600 accent-blue-600"
-                />
-                <span className={`text-xs font-bold ${paymentMethod === 'CASH' ? 'text-slate-800' : 'text-slate-400'}`}>Tiền mặt</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <input 
-                  type="radio" 
-                  name="payment" 
-                  checked={paymentMethod === 'TRANSFER'} 
-                  onChange={() => setPaymentMethod('TRANSFER')}
-                  className="w-4 h-4 text-blue-600 accent-blue-600"
-                />
-                <span className={`text-xs font-bold ${paymentMethod === 'TRANSFER' ? 'text-slate-800' : 'text-slate-400'}`}>Chuyển khoản</span>
-              </label>
+            {/* Wallets */}
+            <div className="flex flex-wrap gap-2 py-2">
+              <span className="text-xs font-bold text-slate-500 block w-full">Ví / Ngân hàng nhận tiền:</span>
+              {wallets.length === 0 && (
+                <span className="text-xs text-rose-500 italic">Vui lòng thiết lập ví trong Cài đặt</span>
+              )}
+              {wallets.map(w => (
+                <label key={w.id} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+                  <input 
+                    type="radio" 
+                    name="walletId" 
+                    checked={walletId === w.id || (wallets.length > 0 && !walletId && wallets[0].id === w.id)} 
+                    onChange={() => {
+                      setWalletId(w.id);
+                      setPaymentMethod(w.type === 'CASH' ? 'CASH' : 'TRANSFER');
+                    }}
+                    className="w-3.5 h-3.5 text-blue-600 accent-blue-600"
+                  />
+                  <span className={`text-xs font-bold ${walletId === w.id || (!walletId && wallets[0].id === w.id) ? 'text-blue-700' : 'text-slate-600'}`}>
+                    {w.name}
+                  </span>
+                </label>
+              ))}
             </div>
 
             {/* Quick Payment Buttons */}
@@ -1651,20 +1654,26 @@ export const POS: React.FC = () => {
                 />
               </div>
 
-              {/* Payment Methods */}
+              {/* Wallets */}
               <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
-                <button 
-                  onClick={() => setPaymentMethod('CASH')}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${paymentMethod === 'CASH' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-600 border border-transparent'}`}
-                >
-                  Tiền mặt
-                </button>
-                <button 
-                  onClick={() => setPaymentMethod('TRANSFER')}
-                  className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors ${paymentMethod === 'TRANSFER' ? 'bg-blue-50 text-blue-600 border border-blue-200' : 'bg-slate-100 text-slate-600 border border-transparent'}`}
-                >
-                  Chuyển khoản
-                </button>
+                 {wallets.length === 0 && (
+                   <span className="text-xs text-rose-500 italic px-2">Vui lòng thiết lập ví trong Cài đặt</span>
+                 )}
+                 {wallets.map(w => {
+                   const isSelected = walletId === w.id || (!walletId && wallets[0]?.id === w.id);
+                   return (
+                     <button 
+                       key={w.id}
+                       onClick={() => {
+                         setWalletId(w.id);
+                         setPaymentMethod(w.type === 'CASH' ? 'CASH' : 'TRANSFER');
+                       }}
+                       className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${isSelected ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-600 border-transparent'}`}
+                     >
+                       {w.name}
+                     </button>
+                   );
+                 })}
               </div>
             </div>
           </div>

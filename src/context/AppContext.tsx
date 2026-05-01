@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, MaintenanceTransfer, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings, ExternalSerial, ImageItem, Task, TelegramSettings, WifiRecord, CameraAccountRecord } from '../types';
+import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, MaintenanceTransfer, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings, ExternalSerial, ImageItem, Task, TelegramSettings, WifiRecord, CameraAccountRecord, Wallet, WalletTransaction } from '../types';
 import { apiService } from '../services/api';
 import { generateId } from '../lib/idUtils';
 import { sendNotification, sendTelegramMessage } from '../lib/notification';
@@ -49,6 +49,10 @@ interface AppContextProps extends AppState {
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
   updatePrintSettings: (settings: PrintSettings) => void;
+  addWallet: (wallet: Wallet) => void;
+  updateWallet: (id: string, updates: Partial<Wallet>) => void;
+  deleteWallet: (id: string) => void;
+  addWalletTransaction: (transaction: WalletTransaction) => void;
 }
 
 const defaultPrintSettings: PrintSettings = {
@@ -87,7 +91,9 @@ const initialState: AppState = {
   cameraAccounts: [],
   tasks: [],
   telegramSettings: defaultTelegramSettings,
-  printSettings: defaultPrintSettings
+  printSettings: defaultPrintSettings,
+  wallets: [],
+  walletTransactions: []
 };
 
 const AppContext = createContext<AppContextProps | undefined>(undefined);
@@ -118,6 +124,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           wifiRecords: Array.isArray(parsed.wifiRecords) ? parsed.wifiRecords : [],
           cameraAccounts: Array.isArray(parsed.cameraAccounts) ? parsed.cameraAccounts : [],
           tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+          wallets: Array.isArray(parsed.wallets) ? parsed.wallets : [],
+          walletTransactions: Array.isArray(parsed.walletTransactions) ? parsed.walletTransactions : [],
           telegramSettings: parsed.telegramSettings || initialState.telegramSettings,
         };
       }
@@ -1362,6 +1370,30 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       note: transaction.note || ''
     });
 
+    if (transaction.walletId) {
+      const wTxId = `WTX${Date.now()}${Math.floor(Math.random() * 100)}`;
+      
+      const relatedTypeMap: Record<string, 'INVOICE' | 'PURCHASE' | 'MAINTENANCE' | 'OTHER'> = {
+        'SALE': 'INVOICE',
+        'SALES_REVENUE': 'INVOICE',
+        'IMPORT': 'PURCHASE',
+        'IMPORT_PAYMENT': 'PURCHASE',
+        'DEBT_COLLECTION': 'OTHER',
+        'DEBT_PAYMENT': 'OTHER'
+      };
+
+      addWalletTransaction({
+          id: wTxId,
+          walletId: transaction.walletId,
+          type: transaction.type === 'RECEIPT' ? 'IN' : 'OUT',
+          amount: transaction.amount,
+          date: transaction.date,
+          description: transaction.note,
+          relatedId: transaction.refId,
+          relatedType: relatedTypeMap[transaction.category] || 'OTHER'
+      });
+    }
+
     if (transaction.category === 'DEBT_COLLECTION' && transaction.partner) {
       updateCustomerStats(transaction.partner);
     }
@@ -1699,6 +1731,52 @@ ${updates.purchaseId ? `<b>Đơn hàng liên kết:</b> ${updates.purchaseId}\n`
     }
   };
 
+  const addWallet = async (wallet: Wallet) => {
+    setState(prev => ({ ...prev, wallets: [...(prev.wallets || []), wallet] }));
+    await apiService.createRecord('Wallets', wallet);
+  };
+
+  const updateWallet = async (id: string, updates: Partial<Wallet>) => {
+    setState(prev => ({
+      ...prev,
+      wallets: (prev.wallets || []).map(w => w.id === id ? { ...w, ...updates } : w)
+    }));
+    await apiService.updateRecord('Wallets', id, updates);
+  };
+
+  const deleteWallet = async (id: string) => {
+    setState(prev => ({ ...prev, wallets: (prev.wallets || []).filter(w => w.id !== id) }));
+    await apiService.deleteRecord('Wallets', id);
+  };
+
+  const addWalletTransaction = async (transaction: WalletTransaction) => {
+    setState(prev => {
+      // Update wallet balance automatically based on transaction type if it belongs to an INVOICE/PURCHASE?
+      // Typically we'll just record it here. We should also update the corresponding wallet's balance.
+      const updatedWallets = (prev.wallets || []).map(w => {
+        if (w.id === transaction.walletId) {
+          const newBalance = transaction.type === 'IN' ? w.balance + transaction.amount : w.balance - transaction.amount;
+          return { ...w, balance: newBalance };
+        }
+        return w;
+      });
+      return {
+        ...prev,
+        wallets: updatedWallets,
+        walletTransactions: [...(prev.walletTransactions || []), transaction]
+      };
+    });
+    
+    // First, fetch the current wallet to update its balance on remote if needed
+    const wallet = state.wallets.find(w => w.id === transaction.walletId);
+    if (wallet) {
+      const newBalance = transaction.type === 'IN' ? wallet.balance + transaction.amount : wallet.balance - transaction.amount;
+      await apiService.updateRecord('Wallets', wallet.id, { balance: newBalance });
+    }
+    
+    await apiService.createRecord('WalletTransactions', transaction);
+  };
+
   return (
     <AppContext.Provider value={{ 
       ...state, 
@@ -1744,7 +1822,11 @@ ${updates.purchaseId ? `<b>Đơn hàng liên kết:</b> ${updates.purchaseId}\n`
       addUser,
       updateUser,
       deleteUser,
-      updatePrintSettings
+      updatePrintSettings,
+      addWallet,
+      updateWallet,
+      deleteWallet,
+      addWalletTransaction
     }}>
       {children}
     </AppContext.Provider>

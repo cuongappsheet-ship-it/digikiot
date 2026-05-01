@@ -38,6 +38,7 @@ export const Layout: React.FC = () => {
     if (currentPath === '/print-settings') return 'Cài đặt bản in';
     if (currentPath === '/tasks') return 'Quản lý công việc';
     if (currentPath === '/external-serials') return 'External Serial';
+    if (currentPath === '/wallets') return 'Quản lý Ví';
     return 'Hệ thống';
   };
 
@@ -81,6 +82,13 @@ export const Layout: React.FC = () => {
             { label: 'Nhập hàng', path: '/import-history', icon: <History size={14} /> },
             { label: 'Trả hàng nhập', path: '/return-import', icon: <RotateCcw size={14} /> },
           ]
+        },
+        {
+          title: 'Tài chính',
+          items: [
+            { label: 'Sổ quỹ', path: '/cash-ledger', icon: <Wallet size={14} /> },
+            { label: 'Quản lý Ví', path: '/wallets', icon: <Wallet size={14} /> },
+          ]
         }
       ]
     },
@@ -97,7 +105,6 @@ export const Layout: React.FC = () => {
         }
       ]
     },
-    { path: '/maintenance', label: 'Bảo hành, sửa chữa', type: 'link' },
     { 
       label: 'Dịch vụ', 
       type: 'dropdown',
@@ -105,6 +112,7 @@ export const Layout: React.FC = () => {
       sections: [
         {
           items: [
+            { label: 'Bảo hành, sửa chữa', path: '/maintenance', icon: <Wrench size={14} /> },
             { label: 'Quản lý Wifi', path: '/wifi', icon: <Wifi size={14} /> },
             { label: 'Quản lý Camera', path: '/camera', icon: <ShieldCheck size={14} /> },
           ]
@@ -112,8 +120,30 @@ export const Layout: React.FC = () => {
       ]
     },
     { path: '/tasks', label: 'Công việc', type: 'link' },
-    { path: '/cash-ledger', label: 'Sổ quỹ', type: 'link' },
-    { path: '/reports', label: 'Báo cáo', type: 'link' },
+    { 
+      label: 'Báo cáo', 
+      type: 'dropdown',
+      id: 'bao-cao',
+      sections: [
+        {
+          items: [
+            { label: 'Cuối ngày', path: '/reports?tab=end_of_day', icon: <ClipboardList size={14} /> },
+            { label: 'Bán hàng', path: '/reports?tab=sales', icon: <ShoppingCart size={14} /> },
+            { label: 'Đặt hàng', path: '/reports?tab=orders', icon: <Package size={14} /> },
+            { label: 'Hàng hóa', path: '/reports?tab=inventory', icon: <Box size={14} /> },
+            { label: 'Khách hàng', path: '/reports?tab=customers', icon: <Users size={14} /> },
+          ]
+        },
+        {
+          items: [
+            { label: 'Nhà cung cấp', path: '/reports?tab=suppliers', icon: <Truck size={14} /> },
+            { label: 'Nhân viên', path: '/reports?tab=staff', icon: <Users size={14} /> },
+            { label: 'Kênh bán hàng', path: '/reports?tab=channels', icon: <Store size={14} /> },
+            { label: 'Tài chính', path: '/reports?tab=finance', icon: <DollarSign size={14} /> },
+          ]
+        }
+      ]
+    },
     ...(currentUser?.role === 'ADMIN' ? [{
       label: 'Thiết lập',
       type: 'dropdown',

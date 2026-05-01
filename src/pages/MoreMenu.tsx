@@ -72,6 +72,7 @@ export const MoreMenu: React.FC = () => {
         { label: 'Cài đặt bản in', icon: <Printer className="text-blue-500" />, path: '/print-settings' },
         { label: 'Cấu hình Telegram', icon: <Send className="text-blue-500" />, path: '/telegram-settings' },
         { label: 'Quản lý nhân viên', icon: <User className="text-blue-500" />, path: '/users' },
+        ...(currentUser?.role === 'ADMIN' ? [{ label: 'Quản lý Ví', icon: <Wallet className="text-blue-500" />, path: '/wallets' }] : [])
       ]
     }
   ];

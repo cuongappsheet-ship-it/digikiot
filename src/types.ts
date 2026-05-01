@@ -100,6 +100,7 @@ export interface CashTransaction {
   partner: string;
   note: string;
   refId?: string; // ID of Invoice or ImportOrder
+  walletId?: string;
 }
 
 export interface POSDraft {
@@ -113,6 +114,7 @@ export interface POSDraft {
     selectedCustomer: Customer | null;
     note: string;
     paymentMethod: 'CASH' | 'TRANSFER' | 'CARD' | 'WALLET';
+    walletId?: string;
   }[];
 }
 
@@ -121,6 +123,7 @@ export interface ImportDraft {
   selectedSupplier: Supplier | null;
   paid: number | '';
   isExplicitIntent?: boolean;
+  walletId?: string;
 }
 
 export interface MaintenanceTransfer {
@@ -248,6 +251,31 @@ export interface Task {
   repairId?: string;
 }
 
+export interface Wallet {
+  id: string;
+  name: string; // e.g. Tiền mặt, MB Bank, Vietcombank
+  type: 'CASH' | 'BANK' | 'EWALLET';
+  balance: number;
+  accountNumber?: string;
+  bankName?: string;
+  ownerName?: string;
+  isActive: boolean;
+  icon?: string;
+  color?: string;
+  backgroundImage?: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  walletId: string;
+  type: 'IN' | 'OUT';
+  amount: number;
+  description: string;
+  date: string;
+  relatedType?: 'INVOICE' | 'PURCHASE' | 'MAINTENANCE' | 'OTHER';
+  relatedId?: string;
+}
+
 export interface ExternalSerial {
   id: string;
   date: string;
@@ -317,4 +345,6 @@ export interface AppState {
   posDraft?: POSDraft;
   importDraft?: ImportDraft;
   printSettings: PrintSettings;
+  wallets: Wallet[];
+  walletTransactions: WalletTransaction[];
 }

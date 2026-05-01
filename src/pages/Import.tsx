@@ -14,7 +14,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 
 export const Import: React.FC = () => {
   const navigate = useNavigate();
-  const { products, suppliers, importOrders, cashTransactions, addImportOrder, addSupplier, updateProduct, addProduct, addSerial, addCashTransaction, importDraft, setImportDraft, serials } = useAppContext();
+  const { products, suppliers, importOrders, cashTransactions, addImportOrder, addSupplier, updateProduct, addProduct, addSerial, addCashTransaction, importDraft, setImportDraft, serials, wallets } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   
@@ -112,6 +112,7 @@ export const Import: React.FC = () => {
   useEscapeKey(() => setViewingProduct(null), !!viewingProduct);
 
   const [paidAmount, setPaidAmount] = useState<number>(importDraft?.paid as number || 0);
+  const [walletId, setWalletId] = useState<string>(importDraft?.walletId || '');
 
   useEffect(() => {
     if (showDraftPrompt) return; // Don't sync draft while prompt is open
@@ -120,11 +121,12 @@ export const Import: React.FC = () => {
     if (
       importDraft?.cart !== cart || 
       importDraft?.selectedSupplier !== selectedSupplier || 
-      importDraft?.paid !== paidAmount
+      importDraft?.paid !== paidAmount ||
+      importDraft?.walletId !== walletId
     ) {
-      setImportDraft({ cart, selectedSupplier, paid: paidAmount });
+      setImportDraft({ cart, selectedSupplier, paid: paidAmount, walletId });
     }
-  }, [cart, selectedSupplier, paidAmount, setImportDraft, importDraft, showDraftPrompt]);
+  }, [cart, selectedSupplier, paidAmount, walletId, setImportDraft, importDraft, showDraftPrompt]);
 
   const totalGoods = cart.reduce((sum, item) => sum + (item.price * item.qty) - (item.discount || 0), 0);
   const finalTotal = totalGoods - overallDiscount + returnCost + otherCost + shippingFee;
@@ -340,7 +342,8 @@ export const Import: React.FC = () => {
           category: 'IMPORT_PAYMENT',
           partner: selectedSupplier.name,
           note: `Thanh toán phiếu nhập ${importId}`,
-          refId: importId
+          refId: importId,
+          walletId: walletId || undefined
         };
         addCashTransaction(newTransaction);
         
@@ -354,7 +357,8 @@ export const Import: React.FC = () => {
             category: 'OTHER',
             partner: selectedSupplier.name,
             note: `Phí vận chuyển phiếu nhập ${importId}`,
-            refId: importId
+            refId: importId,
+            walletId: walletId || undefined
           };
           addCashTransaction(shipTransaction);
         }
@@ -368,7 +372,8 @@ export const Import: React.FC = () => {
           category: 'OTHER',
           partner: selectedSupplier.name,
           note: `Phí vận chuyển phiếu nhập ${importId}`,
-          refId: importId
+          refId: importId,
+          walletId: walletId || undefined
         };
         addCashTransaction(shipTransaction);
       }
@@ -981,6 +986,29 @@ export const Import: React.FC = () => {
                 className="w-32 text-right border border-slate-200 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold outline-none focus:border-blue-500" 
               />
             </div>
+            
+            {/* Wallets */}
+            <div className="flex flex-wrap gap-2 py-2">
+              <span className="text-xs font-bold text-slate-500 block w-full">Ví / Ngân hàng:</span>
+              {wallets.length === 0 && (
+                <span className="text-xs text-rose-500 italic">Vui lòng thiết lập ví trong Cài đặt</span>
+              )}
+              {wallets.map(w => (
+                <label key={w.id} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+                  <input 
+                    type="radio" 
+                    name="walletId" 
+                    checked={walletId === w.id || (wallets.length > 0 && !walletId && wallets[0].id === w.id)} 
+                    onChange={() => setWalletId(w.id)}
+                    className="w-3.5 h-3.5 text-blue-600 accent-blue-600"
+                  />
+                  <span className={`text-xs font-bold ${walletId === w.id || (!walletId && wallets[0].id === w.id) ? 'text-blue-700' : 'text-slate-600'}`}>
+                    {w.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+
             <div className="flex justify-between items-center pt-2 border-t border-slate-100">
               <span className="text-sm font-bold text-red-600">Còn nợ NCC</span>
               <span className="text-base font-bold text-red-600">{formatNumber(finalTotal - paidAmount)}</span>
@@ -1219,6 +1247,25 @@ export const Import: React.FC = () => {
                   className="w-32 text-right bg-transparent text-lg font-bold text-slate-800 outline-none" 
                   placeholder="0"
                 />
+              </div>
+
+              {/* Wallets */}
+              <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+                 {wallets.length === 0 && (
+                   <span className="text-xs text-rose-500 italic px-2">Vui lòng thiết lập ví trong Cài đặt</span>
+                 )}
+                 {wallets.map(w => {
+                   const isSelected = walletId === w.id || (!walletId && wallets[0]?.id === w.id);
+                   return (
+                     <button 
+                       key={w.id}
+                       onClick={() => setWalletId(w.id)}
+                       className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${isSelected ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-600 border-transparent'}`}
+                     >
+                       {w.name}
+                     </button>
+                   );
+                 })}
               </div>
             </div>
           </div>

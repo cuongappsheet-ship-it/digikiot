@@ -97,6 +97,7 @@ export const Customers: React.FC = () => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentType, setPaymentType] = useState<'ALL' | 'SINGLE'>('ALL');
   const [targetInvoiceId, setTargetInvoiceId] = useState<string | null>(null);
+  const [paymentWalletId, setPaymentWalletId] = useState<string>('');
 
   // Lock scroll when modals are open
   useScrollLock(isModalOpen || !!selectedCustomer || !!selectedInvoice || isPaymentModalOpen);
