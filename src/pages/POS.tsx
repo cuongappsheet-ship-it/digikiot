@@ -154,7 +154,8 @@ export const POS: React.FC = () => {
   const { addProduct } = useAppContext();
 
   const hasQuickAddChanges = () => {
-    return (
+
+return (
       quickAddName !== '' ||
       quickAddPrice !== '' ||
       quickAddId !== '' ||
@@ -524,6 +525,15 @@ export const POS: React.FC = () => {
     setPOSDraft({ activeTab, tabs });
     alert("Đã lưu tạm đơn hàng!");
   };
+
+  useMobileBackModal(isCustomerModalOpen, () => setIsCustomerModalOpen(false)); // auto-injected
+  useMobileBackModal(isSerialModalOpen, () => setIsSerialModalOpen(false)); // auto-injected
+  useMobileBackModal(isQuickAddModalOpen, () => setIsQuickAddModalOpen(false)); // auto-injected
+  useMobileBackModal(isMobileCustomerSearchOpen, () => setIsMobileCustomerSearchOpen(false)); // auto-injected
+  useMobileBackModal(isMobileProductSearchOpen, () => setIsMobileProductSearchOpen(false)); // auto-injected
+  useMobileBackModal(isMobileCheckoutOpen, () => setIsMobileCheckoutOpen(false)); // auto-injected
+  useMobileBackModal(showDraftPrompt, () => setShowDraftPrompt(false)); // auto-injected
+  useMobileBackModal(isCheckingOut, () => setIsCheckingOut(false)); // auto-injected
 
   return (
     <div className="flex flex-col bg-slate-100 font-sans">

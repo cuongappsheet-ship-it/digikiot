@@ -5,6 +5,7 @@ import { Plus, ArrowLeftRight, Activity, X, Wallet as WalletIcon, Landmark, Cred
 import { formatNumber } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
 import { ImageLibraryModal } from '../components/ImageLibraryModal';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 const AVAILABLE_ICONS: Record<string, React.FC<any>> = {
   Wallet: WalletIcon,
@@ -64,6 +65,10 @@ export const WalletManagement: React.FC = () => {
   const [txCategory, setTxCategory] = useState('OTHER');
   const [txAmount, setTxAmount] = useState('');
   const [txDescription, setTxDescription] = useState('');
+
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false));
+  useMobileBackModal(isImageLibraryOpen, () => setIsImageLibraryOpen(false));
+  useMobileBackModal(isTransactionModalOpen, () => setIsTransactionModalOpen(false));
 
   if (currentUser?.role !== 'ADMIN') {
     return (

@@ -6,6 +6,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { formatNumber, parseFormattedNumber, parseDateString } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
 import { PrintTemplate } from '../components/PrintTemplate';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const CashLedger: React.FC = () => {
   const { cashTransactions, addCashTransaction, wallets } = useAppContext();
@@ -95,7 +96,9 @@ export const CashLedger: React.FC = () => {
     setWalletId('');
   };
 
-  return (
+
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
+return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       {/* Print Template Container */}
       {printData && <PrintTemplate {...printData} />}

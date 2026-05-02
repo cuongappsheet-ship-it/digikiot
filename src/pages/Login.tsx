@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { Store, UserCircle, Lock, AlertCircle, Loader2, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { apiService } from '../services/api';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -18,7 +19,8 @@ export const Login: React.FC = () => {
     const interval = setInterval(() => {
       setShowStoreIcon(prev => !prev);
     }, 3000);
-    return () => clearInterval(interval);
+
+return () => clearInterval(interval);
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -103,6 +105,8 @@ export const Login: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  useMobileBackModal(isLoading, () => setIsLoading(false)); // auto-injected
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

@@ -7,6 +7,7 @@ import { formatNumber, parseFormattedNumber } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
 import { PrintTemplate } from '../components/PrintTemplate';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const Suppliers: React.FC = () => {
   const navigate = useNavigate();
@@ -186,7 +187,10 @@ export const Suppliers: React.FC = () => {
     navigate('/create-return-import', { state: { preFillOrder: order } });
   };
 
-  return (
+
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
+  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
+return (
     <div className="flex flex-col bg-slate-50 md:bg-white">
       {/* Print Template Container */}
       {printData && <PrintTemplate {...printData} />}

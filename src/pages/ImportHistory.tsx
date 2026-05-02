@@ -6,6 +6,7 @@ import { ImportOrder } from '../types';
 import { formatNumber } from '../lib/utils';
 import { PrintTemplate } from '../components/PrintTemplate';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const ImportHistory: React.FC = () => {
   const { importOrders, suppliers, setImportDraft, updateImportOrder, addCashTransaction, cashTransactions, wallets } = useAppContext();
@@ -151,7 +152,9 @@ export const ImportHistory: React.FC = () => {
   const endIndex = startIndex + rowsPerPage;
   const paginatedOrders = filteredOrders.slice().reverse().slice(startIndex, endIndex);
 
-  return (
+
+  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
+return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col mx-auto w-full">
         <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-4 justify-between items-center bg-slate-50/50 shrink-0">

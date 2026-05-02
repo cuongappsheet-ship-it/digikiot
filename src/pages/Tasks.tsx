@@ -34,6 +34,7 @@ import { useAppContext } from '../context/AppContext';
 import { Task, TelegramSettings, Customer, Invoice, MaintenanceRecord } from '../types';
 import { formatDateTime, parseDateString } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Tasks: React.FC = () => {
@@ -130,7 +131,8 @@ export const Tasks: React.FC = () => {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
+
+return () => clearInterval(timer);
   }, []);
 
   // Helper to format time ago
@@ -260,6 +262,9 @@ export const Tasks: React.FC = () => {
     }
     return <MapPin size={16} fill="currentColor" className="text-rose-500" />;
   };
+
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
+  useMobileBackModal(showCustomerResults, () => setShowCustomerResults(false)); // auto-injected
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">

@@ -7,6 +7,7 @@ import { generateId } from '../lib/idUtils';
 import { PrintTemplate } from '../components/PrintTemplate';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const Customers: React.FC = () => {
   const { customers, addCustomer, updateCustomer, invoices, updateInvoice, addCashTransaction, returnSalesOrders, currentUser, cashTransactions, maintenanceRecords, tasks, wifiRecords, cameraAccounts } = useAppContext();
@@ -291,7 +292,11 @@ export const Customers: React.FC = () => {
     }
   };
 
-  return (
+
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
+  useMobileBackModal(isLocating, () => setIsLocating(false)); // auto-injected
+  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
+return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       {/* Print Template Container */}
       {printData && <PrintTemplate {...printData} />}

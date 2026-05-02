@@ -75,7 +75,8 @@ export const Import: React.FC = () => {
   const [newHasSerial, setNewHasSerial] = useState(false);
 
   const hasProductModalChanges = () => {
-    return (
+
+return (
       newName !== '' ||
       newPrice !== '' ||
       newCost !== '' ||
@@ -428,6 +429,14 @@ export const Import: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  useMobileBackModal(isSupplierModalOpen, () => setIsSupplierModalOpen(false)); // auto-injected
+  useMobileBackModal(isProductModalOpen, () => setIsProductModalOpen(false)); // auto-injected
+  useMobileBackModal(isMobileProductSearchOpen, () => setIsMobileProductSearchOpen(false)); // auto-injected
+  useMobileBackModal(isMobileSupplierSearchOpen, () => setIsMobileSupplierSearchOpen(false)); // auto-injected
+  useMobileBackModal(isMobileCheckoutOpen, () => setIsMobileCheckoutOpen(false)); // auto-injected
+  useMobileBackModal(isSubmitting, () => setIsSubmitting(false)); // auto-injected
+  useMobileBackModal(showConfirmModal, () => setShowConfirmModal(false)); // auto-injected
 
   return (
     <>

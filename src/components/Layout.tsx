@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Store, Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign, Wrench, Send, Wifi, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { useDisableBackButton } from '../hooks/useDisableBackButton';
 
 export const Layout: React.FC = () => {
   const location = useLocation();
@@ -11,8 +10,6 @@ export const Layout: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-
-  useDisableBackButton();
 
   const handleSync = async () => {
     setIsSyncing(true);

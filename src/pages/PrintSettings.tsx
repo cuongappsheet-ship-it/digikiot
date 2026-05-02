@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Printer, Save, ArrowLeft, Store, MapPin, Phone, Mail, CreditCard, MessageSquare } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const PrintSettings: React.FC = () => {
   const { printSettings, updatePrintSettings } = useAppContext();
@@ -22,7 +23,10 @@ export const PrintSettings: React.FC = () => {
     }, 300);
   };
 
-  return (
+
+  useMobileBackModal(isSaved, () => setIsSaved(false)); // auto-injected
+  useMobileBackModal(isSaving, () => setIsSaving(false)); // auto-injected
+return (
     <div className="min-h-full bg-slate-50 flex flex-col">
       <div className="bg-white border-b border-slate-200 p-4 flex items-center gap-4 sticky top-0 z-10">
         <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">

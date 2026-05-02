@@ -33,6 +33,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { formatNumber, formatDateTime } from '../lib/utils';
 import { useScrollLock } from '../hooks/useScrollLock';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 import { 
   BarChart, 
   Bar, 
@@ -550,7 +551,11 @@ export const Dashboard: React.FC = () => {
     return formatNumber(val);
   };
 
-  return (
+
+  useMobileBackModal(showProfit, () => setShowProfit(false)); // auto-injected
+  useMobileBackModal(showDateModal, () => setShowDateModal(false)); // auto-injected
+  useMobileBackModal(showActivityModal, () => setShowActivityModal(false)); // auto-injected
+return (
     <div className="bg-slate-50 md:bg-transparent px-0 md:px-0 py-0 md:py-0">
       {/* Desktop View */}
       <div className="hidden md:block p-6">

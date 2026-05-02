@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { Product, ImportItem, Supplier, CashTransaction, ReturnImportOrder, ImportOrder } from '../types';
 import { formatNumber, parseFormattedNumber } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export const CreateReturnImport: React.FC = () => {
@@ -66,7 +67,8 @@ export const CreateReturnImport: React.FC = () => {
       }
     }, 300);
 
-    return () => clearTimeout(handler);
+
+return () => clearTimeout(handler);
   }, [searchTerm, importOrders]);
 
   const handleSelectOrder = (order: ImportOrder) => {
@@ -229,6 +231,8 @@ export const CreateReturnImport: React.FC = () => {
     setShowConfirmModal(false);
     navigate('/return-import');
   };
+
+  useMobileBackModal(showConfirmModal, () => setShowConfirmModal(false)); // auto-injected
 
   return (
     <div className="flex flex-col lg:flex-row bg-slate-50 relative">

@@ -532,7 +532,9 @@ export const Maintenance: React.FC = () => {
     }
   };
 
-  return (
+
+  useMobileBackModal(isEditingRecord, () => setIsEditingRecord(false)); // auto-injected
+return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6 shrink-0">
         <div className="flex-1 flex flex-col md:flex-row items-center gap-3">
