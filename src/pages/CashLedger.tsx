@@ -394,8 +394,8 @@ export const CashLedger: React.FC = () => {
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400"
                   >
                     <option value="">-- Chọn ví (Bắt buộc) --</option>
-                    {wallets.map(w => (
-                      <option key={w.id} value={w.id}>{w.name} ({w.type === 'CASH' ? 'Tiền mặt' : 'Ngân hàng'})</option>
+                    {wallets.map((w, idx) => (
+                      <option key={`${w.id}-${idx}`} value={w.id}>{w.name} ({w.type === 'CASH' ? 'Tiền mặt' : 'Ngân hàng'})</option>
                     ))}
                   </select>
                 )}

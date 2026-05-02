@@ -1,14 +1,24 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Store, Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign, Wrench, Send, Wifi } from 'lucide-react';
+import { Store, Search, Truck, Bell, Settings, ChevronDown, ShoppingCart, Home, Box, FileText, Users, Package, History, RotateCcw, ClipboardList, PlusCircle, Tag, ShieldCheck, Wallet, LogOut, Menu, ArrowLeftRight, Printer, DollarSign, Wrench, Send, Wifi, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useDisableBackButton } from '../hooks/useDisableBackButton';
 
 export const Layout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, syncData } = useAppContext();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useDisableBackButton();
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    await syncData();
+    setIsSyncing(false);
+  };
 
   // Scroll to top on route change
   React.useEffect(() => {
@@ -203,6 +213,15 @@ export const Layout: React.FC = () => {
             </Link>
             
             <div className="flex items-center gap-4 md:gap-6">
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                title="Đồng bộ dữ liệu"
+                className={`p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors border border-blue-100 ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+              </button>
+              
               {/* Mobile Title Replacement for Icons */}
               <div className="md:hidden">
                 <span className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">

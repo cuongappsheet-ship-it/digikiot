@@ -446,8 +446,11 @@ export const POS: React.FC = () => {
         })
       };
 
-      // Record Cash Transaction if paid > 0
-      if (invoice.paid > 0) {
+      // Handle Cash Transaction Delta
+      const isEdit = !!currentTab.editingInvoiceId;
+      
+      if (!isEdit && invoice.paid > 0) {
+        // New invoice cash transaction
         const transactionId = generateId('PT', cashTransactions);
         const newTransaction: CashTransaction = {
           id: transactionId,
@@ -933,8 +936,8 @@ export const POS: React.FC = () => {
               {wallets.length === 0 && (
                 <span className="text-xs text-rose-500 italic">Vui lòng thiết lập ví trong Cài đặt</span>
               )}
-              {wallets.map(w => (
-                <label key={w.id} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+              {wallets.map((w, idx) => (
+                <label key={`${w.id}-${idx}`} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
                   <input 
                     type="radio" 
                     name="walletId" 
@@ -1659,11 +1662,11 @@ export const POS: React.FC = () => {
                  {wallets.length === 0 && (
                    <span className="text-xs text-rose-500 italic px-2">Vui lòng thiết lập ví trong Cài đặt</span>
                  )}
-                 {wallets.map(w => {
-                   const isSelected = walletId === w.id || (!walletId && wallets[0]?.id === w.id);
-                   return (
-                     <button 
-                       key={w.id}
+              {wallets.map((w, idx) => {
+                const isSelected = walletId === w.id || (!walletId && wallets[0]?.id === w.id);
+                return (
+                  <button 
+                    key={`${w.id}-${idx}`}
                        onClick={() => {
                          setWalletId(w.id);
                          setPaymentMethod(w.type === 'CASH' ? 'CASH' : 'TRANSFER');

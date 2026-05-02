@@ -8,13 +8,14 @@ import { PrintTemplate } from '../components/PrintTemplate';
 import { useScrollLock } from '../hooks/useScrollLock';
 
 export const ImportHistory: React.FC = () => {
-  const { importOrders, suppliers, setImportDraft, updateImportOrder, addCashTransaction } = useAppContext();
+  const { importOrders, suppliers, setImportDraft, updateImportOrder, addCashTransaction, cashTransactions, wallets } = useAppContext();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<ImportOrder | null>(null);
   const [printData, setPrintData] = useState<any>(null);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentWalletId, setPaymentWalletId] = useState<string>('');
   
   // Use scroll lock for modals
   useScrollLock(!!selectedOrder || isPaymentModalOpen);
@@ -25,6 +26,10 @@ export const ImportHistory: React.FC = () => {
     if (amount <= 0) return;
     if (amount > selectedOrder.debt) {
       alert('Số tiền thanh toán không được lớn hơn số tiền còn nợ!'); // We should use a custom alert, but for simplicity we'll just return or cap it. Let's cap it.
+    }
+    if (!paymentWalletId) {
+      alert('Vui lòng chọn ví thanh toán!');
+      return;
     }
     
     const finalAmount = Math.min(amount, selectedOrder.debt);
@@ -38,7 +43,8 @@ export const ImportHistory: React.FC = () => {
       category: 'IMPORT_PAYMENT',
       partner: selectedOrder.supplier,
       note: `Thanh toán thêm cho phiếu nhập ${selectedOrder.id}`,
-      refId: selectedOrder.id
+      refId: selectedOrder.id,
+      walletId: paymentWalletId
     });
 
     updateImportOrder(selectedOrder.id, {
@@ -81,17 +87,44 @@ export const ImportHistory: React.FC = () => {
 
   const handleOpenOrder = (order: ImportOrder) => {
     const supplier = (suppliers || []).find(s => s.name === order.supplier);
+    
+    // Parse order.date back to YYYY-MM-DDThh:mm
+    let parsedDate = '';
+    if (order.date) {
+      try {
+        const [timePart, datePart] = order.date.split(' ');
+        if (timePart && datePart) {
+          const [hh, mm] = timePart.split(':');
+          const [DD, MM, YYYY] = datePart.split('/');
+          parsedDate = `${YYYY}-${MM.padStart(2, '0')}-${DD.padStart(2, '0')}T${hh.padStart(2, '0')}:${mm.padStart(2, '0')}`;
+        }
+      } catch (e) {
+        console.warn("Could not parse date", order.date);
+      }
+    }
+
+    const relatedTx = cashTransactions.find(t => t.refId === order.id && t.category === 'IMPORT_PAYMENT');
+    const draftWalletId = relatedTx?.walletId || order.walletId || undefined;
+
     setImportDraft({
+      editingId: order.id,
       cart: order.items.map(item => ({
         ...item,
         hasSerial: !!(item.sn && item.sn.length > 0),
         serials: item.sn || [],
-        unit: 'Cái',
+        unit: item.unit || 'Cái',
         discount: 0,
         note: ''
       })),
       selectedSupplier: supplier || { id: '', name: order.supplier, phone: '' },
       paid: order.paid,
+      transactionDate: parsedDate,
+      walletId: draftWalletId,
+      overallDiscount: order.discount || 0,
+      returnCost: order.returnCost || 0,
+      shippingFee: order.shippingFee || 0,
+      otherCost: order.otherCost || 0,
+      note: order.note || '',
       isExplicitIntent: true
     });
     navigate('/import');
@@ -429,13 +462,27 @@ export const ImportHistory: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                  <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
-                    <p className="text-base font-bold text-emerald-700 mt-1">{formatNumber(selectedOrder.paid)}đ</p>
+                  <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Đã thanh toán</p>
+                      <p className="text-base font-bold text-emerald-700 mt-1">{formatNumber(selectedOrder.paid)}đ</p>
+                    </div>
+                    {selectedOrder.paid > 0 && (
+                      <div className="mt-2 text-xs font-medium text-emerald-600/80">
+                        {(() => {
+                          const paymentTransactions = cashTransactions.filter(t => t.refId === selectedOrder.id && t.category === 'IMPORT_PAYMENT');
+                          const walletIds = [...new Set(paymentTransactions.map(t => t.walletId).filter(Boolean))];
+                          const walletNames = walletIds.map(wId => wallets?.find(w => w.id === wId)?.name).filter(Boolean);
+                          return walletNames.length > 0 ? `Qua: ${walletNames.join(', ')}` : 'Tiền mặt';
+                        })()}
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-red-50/50 p-3 rounded-xl border border-red-100">
-                    <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Còn nợ</p>
-                    <p className="text-base font-bold text-red-700 mt-1">{formatNumber(selectedOrder.debt)}đ</p>
+                  <div className="bg-red-50/50 p-3 rounded-xl border border-red-100 flex flex-col justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Còn nợ</p>
+                      <p className="text-base font-bold text-red-700 mt-1">{formatNumber(selectedOrder.debt)}đ</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -512,6 +559,20 @@ export const ImportHistory: React.FC = () => {
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">đ</span>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ví thanh toán</label>
+                <select
+                  value={paymentWalletId}
+                  onChange={e => setPaymentWalletId(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-0 focus:border-emerald-500 font-bold text-slate-800 text-sm transition-colors cursor-pointer appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em`, paddingRight: `2.5rem` }}
+                >
+                  <option value="" disabled>Chọn ví</option>
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="p-6 border-t border-slate-100 flex gap-3 bg-slate-50/50">

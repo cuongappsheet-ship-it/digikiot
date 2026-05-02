@@ -683,9 +683,16 @@ export const Maintenance: React.FC = () => {
                     <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
                       <User size={16} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-bold text-sm text-slate-800">{r.customerName}</p>
-                      <p className="text-xs text-slate-400 font-medium">{r.customerPhone}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-slate-400 font-medium">{r.customerPhone}</p>
+                        {r.customerPhone && (
+                          <a href={`tel:${r.customerPhone}`} onClick={(e) => e.stopPropagation()} className="p-1 px-1.5 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors">
+                            <Phone size={10} className="fill-emerald-600 text-transparent" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
 

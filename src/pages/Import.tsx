@@ -27,15 +27,18 @@ export const Import: React.FC = () => {
     }))
   );
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(importDraft?.selectedSupplier || null);
-  const [importCode, setImportCode] = useState('Mã phiếu tự động');
+  const [importCode, setImportCode] = useState(importDraft?.editingId || importDraft?.orderCode || 'Mã phiếu tự động');
   const [orderCode, setOrderCode] = useState('');
-  const [overallDiscount, setOverallDiscount] = useState(0);
-  const [returnCost, setReturnCost] = useState(0);
-  const [shippingFee, setShippingFee] = useState(0);
-  const [otherCost, setOtherCost] = useState(0);
-  const [note, setNote] = useState('');
+  const [overallDiscount, setOverallDiscount] = useState(importDraft?.overallDiscount || 0);
+  const [returnCost, setReturnCost] = useState(importDraft?.returnCost || 0);
+  const [shippingFee, setShippingFee] = useState(importDraft?.shippingFee || 0);
+  const [otherCost, setOtherCost] = useState(importDraft?.otherCost || 0);
+  const [note, setNote] = useState(importDraft?.note || '');
 
   const [transactionDate, setTransactionDate] = useState(() => {
+    if (importDraft?.transactionDate) {
+      return importDraft.transactionDate;
+    }
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   });
@@ -124,7 +127,7 @@ export const Import: React.FC = () => {
       importDraft?.paid !== paidAmount ||
       importDraft?.walletId !== walletId
     ) {
-      setImportDraft({ cart, selectedSupplier, paid: paidAmount, walletId });
+      setImportDraft({ ...importDraft, cart, selectedSupplier, paid: paidAmount, walletId });
     }
   }, [cart, selectedSupplier, paidAmount, walletId, setImportDraft, importDraft, showDraftPrompt]);
 
@@ -263,6 +266,9 @@ export const Import: React.FC = () => {
   const handleImportClick = () => {
     if (cart.length === 0) return alert('Phiếu nhập trống!');
     if (!selectedSupplier) return alert('Vui lòng chọn nhà cung cấp!');
+    if (paidAmount > 0 && !walletId) {
+      return alert('Vui lòng chọn ví thanh toán!');
+    }
     
     for (let item of cart) {
       if (item.hasSerial && item.qty === 0) {
@@ -282,7 +288,10 @@ export const Import: React.FC = () => {
       const dateStr = `${hh}:${min}:00 ${d}/${m}/${y}`;
       const now = new Date(`${y}-${m}-${d}T${hh}:${min}:00`);
 
-      const importId = importCode === 'Mã phiếu tự động' ? generateId('NH', importOrders) : importCode;
+      const isEdit = !!importDraft?.editingId;
+      const importId = isEdit ? importDraft.editingId as string : (importCode === 'Mã phiếu tự động' ? generateId('NH', importOrders) : importCode);
+
+      const isActuallyUpdate = isEdit || importOrders.some(o => o.id === importId);
 
       const order: ImportOrder = {
         id: importId,
@@ -304,51 +313,66 @@ export const Import: React.FC = () => {
         returnCost: returnCost,
         shippingFee: shippingFee,
         otherCost: otherCost,
-        note: note
+        note: note,
+        walletId: walletId || undefined
       };
 
-      // Update stock and add serials/stock cards
-      for (const item of cart) {
-        const p = (products || []).find(x => x.id === item.id);
-        if (p) {
-          updateProduct(item.id, { 
-            stock: (p.stock || 0) + item.qty,
-            importPrice: item.price 
-          }, true);
-          
-          if (item.hasSerial && item.serials) {
-            for (const sn of item.serials) {
-              addSerial({
-                prodId: item.id,
-                sn,
-                supplier: selectedSupplier.name,
-                importPrice: item.price,
-                date: now.toLocaleDateString('vi-VN'),
-                refId: importId
-              });
-            }
-          }
-        }
-      }
-
-      // Record Cash Transaction if paidAmount > 0
-      if (order.paid > 0) {
-        const transactionId = generateId('PC', cashTransactions);
-        const newTransaction: CashTransaction = {
-          id: transactionId,
-          date: dateStr,
-          type: 'PAYMENT',
-          amount: order.paid,
-          category: 'IMPORT_PAYMENT',
-          partner: selectedSupplier.name,
-          note: `Thanh toán phiếu nhập ${importId}`,
-          refId: importId,
-          walletId: walletId || undefined
-        };
-        addCashTransaction(newTransaction);
+      if (isActuallyUpdate) {
+        // Update existing order
+        await addImportOrder(order);
         
-        if (shippingFee > 0) {
-          const shipTransactionId = generateId('PC', [...cashTransactions, newTransaction]);
+        // Also check if they added a payment amount but no previous cash transaction existed
+        const existingTx = cashTransactions.find(t => t.refId === importId && t.category === 'IMPORT_PAYMENT');
+        if (!existingTx && order.paid > 0) {
+          const transactionId = generateId('PC', cashTransactions);
+          addCashTransaction({
+            id: transactionId,
+            date: dateStr,
+            type: 'PAYMENT',
+            amount: order.paid,
+            category: 'IMPORT_PAYMENT',
+            partner: selectedSupplier.name,
+            note: `Thanh toán phiếu nhập ${importId}`,
+            refId: importId,
+            walletId: walletId || undefined
+          });
+        }
+      } else {
+        await addImportOrder(order);
+
+        // Record Cash Transaction if paidAmount > 0
+        if (order.paid > 0) {
+          const transactionId = generateId('PC', cashTransactions);
+          const newTransaction: CashTransaction = {
+            id: transactionId,
+            date: dateStr,
+            type: 'PAYMENT',
+            amount: order.paid,
+            category: 'IMPORT_PAYMENT',
+            partner: selectedSupplier.name,
+            note: `Thanh toán phiếu nhập ${importId}`,
+            refId: importId,
+            walletId: walletId || undefined
+          };
+          addCashTransaction(newTransaction);
+          
+          if (shippingFee > 0) {
+            const shipTransactionId = generateId('PC', [...cashTransactions, newTransaction]);
+            const shipTransaction: CashTransaction = {
+              id: shipTransactionId,
+              date: dateStr,
+              type: 'PAYMENT',
+              amount: shippingFee,
+              category: 'OTHER',
+              partner: selectedSupplier.name,
+              note: `Phí vận chuyển phiếu nhập ${importId}`,
+              refId: importId,
+              walletId: walletId || undefined
+            };
+            addCashTransaction(shipTransaction);
+          }
+        } else if (shippingFee > 0) {
+          const shipTransactionId = generateId('PC', cashTransactions);
           const shipTransaction: CashTransaction = {
             id: shipTransactionId,
             date: dateStr,
@@ -362,23 +386,27 @@ export const Import: React.FC = () => {
           };
           addCashTransaction(shipTransaction);
         }
-      } else if (shippingFee > 0) {
-        const shipTransactionId = generateId('PC', cashTransactions);
-        const shipTransaction: CashTransaction = {
-          id: shipTransactionId,
-          date: dateStr,
-          type: 'PAYMENT',
-          amount: shippingFee,
-          category: 'OTHER',
-          partner: selectedSupplier.name,
-          note: `Phí vận chuyển phiếu nhập ${importId}`,
-          refId: importId,
-          walletId: walletId || undefined
-        };
-        addCashTransaction(shipTransaction);
       }
 
-      await addImportOrder(order);
+      // Add missing serials regardless of create or edit
+      for (const item of cart) {
+        if (item.hasSerial && item.serials) {
+          for (const sn of item.serials) {
+            const exists = (serials || []).find(s => s.sn === sn);
+            if (!exists) {
+              addSerial({
+                prodId: item.id,
+                sn,
+                supplier: selectedSupplier.name,
+                importPrice: item.price,
+                date: now.toLocaleDateString('vi-VN'),
+                refId: importId
+              });
+            }
+          }
+        }
+      }
+
       setCart([]);
       setSelectedSupplier(null);
       setPaidAmount(0);
@@ -976,39 +1004,44 @@ export const Import: React.FC = () => {
               <span className="text-sm font-bold text-slate-800">Cần trả nhà cung cấp</span>
               <span className="text-base font-bold text-blue-600">{formatNumber(finalTotal)}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-slate-600">Đã thanh toán</span>
-              <NumericFormat 
-                value={paidAmount}
-                onValueChange={(values) => setPaidAmount(values.floatValue || 0)}
-                thousandSeparator="."
-                decimalSeparator=","
-                className="w-32 text-right border border-slate-200 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold outline-none focus:border-blue-500" 
-              />
-            </div>
-            
             {/* Wallets */}
             <div className="flex flex-wrap gap-2 py-2">
-              <span className="text-xs font-bold text-slate-500 block w-full">Ví / Ngân hàng:</span>
+              <span className="text-xs font-bold text-slate-500 block w-full">Ví / Ngân hàng thanh toán:</span>
               {wallets.length === 0 && (
                 <span className="text-xs text-rose-500 italic">Vui lòng thiết lập ví trong Cài đặt</span>
               )}
-              {wallets.map(w => (
-                <label key={w.id} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
+              {wallets.map((w, idx) => (
+                <label key={`${w.id}-${idx}`} className="flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50">
                   <input 
                     type="radio" 
                     name="walletId" 
-                    checked={walletId === w.id || (wallets.length > 0 && !walletId && wallets[0].id === w.id)} 
+                    checked={walletId === w.id} 
                     onChange={() => setWalletId(w.id)}
                     className="w-3.5 h-3.5 text-blue-600 accent-blue-600"
                   />
-                  <span className={`text-xs font-bold ${walletId === w.id || (!walletId && wallets[0].id === w.id) ? 'text-blue-700' : 'text-slate-600'}`}>
+                  <span className={`text-xs font-bold ${walletId === w.id ? 'text-blue-700' : 'text-slate-600'}`}>
                     {w.name}
                   </span>
                 </label>
               ))}
             </div>
 
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-slate-600">Đã thanh toán</span>
+              {walletId ? (
+                <NumericFormat 
+                  value={paidAmount}
+                  onValueChange={(values) => setPaidAmount(values.floatValue || 0)}
+                  thousandSeparator="."
+                  decimalSeparator=","
+                  className="w-32 text-right border border-slate-200 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold outline-none focus:border-blue-500" 
+                  placeholder="0"
+                />
+              ) : (
+                <span className="text-xs font-medium text-rose-500 italic">Vui lòng chọn ví</span>
+              )}
+            </div>
+            
             <div className="flex justify-between items-center pt-2 border-t border-slate-100">
               <span className="text-sm font-bold text-red-600">Còn nợ NCC</span>
               <span className="text-base font-bold text-red-600">{formatNumber(finalTotal - paidAmount)}</span>
@@ -1237,35 +1270,42 @@ export const Import: React.FC = () => {
                 <span className="text-lg font-bold text-blue-600">{formatNumber(finalTotal)}</span>
               </div>
 
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-sm font-bold text-slate-800">Tiền trả NCC</span>
-                <NumericFormat 
-                  value={paidAmount}
-                  onValueChange={(values) => setPaidAmount(values.floatValue || 0)}
-                  thousandSeparator="."
-                  decimalSeparator=","
-                  className="w-32 text-right bg-transparent text-lg font-bold text-slate-800 outline-none" 
-                  placeholder="0"
-                />
+              {/* Wallets */}
+              <div>
+                <span className="text-xs font-bold text-slate-500 mb-2 block">Ví thanh toán:</span>
+                <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                   {wallets.length === 0 && (
+                     <span className="text-xs text-rose-500 italic px-2">Vui lòng thiết lập ví trong Cài đặt</span>
+                   )}
+                   {wallets.map((w, idx) => {
+                     const isSelected = walletId === w.id;
+                     return (
+                       <button 
+                         key={`${w.id}-${idx}`}
+                         onClick={() => setWalletId(w.id)}
+                         className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${isSelected ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-600 border-transparent'}`}
+                       >
+                         {w.name}
+                       </button>
+                     );
+                   })}
+                </div>
               </div>
 
-              {/* Wallets */}
-              <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
-                 {wallets.length === 0 && (
-                   <span className="text-xs text-rose-500 italic px-2">Vui lòng thiết lập ví trong Cài đặt</span>
-                 )}
-                 {wallets.map(w => {
-                   const isSelected = walletId === w.id || (!walletId && wallets[0]?.id === w.id);
-                   return (
-                     <button 
-                       key={w.id}
-                       onClick={() => setWalletId(w.id)}
-                       className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-colors border ${isSelected ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-slate-100 text-slate-600 border-transparent'}`}
-                     >
-                       {w.name}
-                     </button>
-                   );
-                 })}
+              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                <span className="text-sm font-bold text-slate-800">Tiền trả NCC</span>
+                {walletId ? (
+                  <NumericFormat 
+                    value={paidAmount}
+                    onValueChange={(values) => setPaidAmount(values.floatValue || 0)}
+                    thousandSeparator="."
+                    decimalSeparator=","
+                    className="w-32 text-right bg-transparent text-lg font-bold text-slate-800 outline-none" 
+                    placeholder="0"
+                  />
+                ) : (
+                  <span className="text-xs font-medium text-rose-500 italic">Chọn ví</span>
+                )}
               </div>
             </div>
           </div>

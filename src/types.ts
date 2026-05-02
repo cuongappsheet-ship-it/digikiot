@@ -19,6 +19,7 @@ export interface Customer {
   id?: string;
   name: string;
   phone: string;
+  phone2?: string;
   address?: string;
   location?: string;
   note?: string;
@@ -89,6 +90,7 @@ export interface ImportOrder {
   otherCost?: number;
   note?: string;
   returned?: boolean;
+  walletId?: string;
 }
 
 export interface CashTransaction {
@@ -119,11 +121,19 @@ export interface POSDraft {
 }
 
 export interface ImportDraft {
+  editingId?: string;
   cart: ImportItem[];
   selectedSupplier: Supplier | null;
   paid: number | '';
   isExplicitIntent?: boolean;
   walletId?: string;
+  transactionDate?: string;
+  note?: string;
+  orderCode?: string;
+  returnCost?: number;
+  shippingFee?: number;
+  otherCost?: number;
+  overallDiscount?: number;
 }
 
 export interface MaintenanceTransfer {
@@ -272,6 +282,7 @@ export interface WalletTransaction {
   amount: number;
   description: string;
   date: string;
+  category?: string;
   relatedType?: 'INVOICE' | 'PURCHASE' | 'MAINTENANCE' | 'OTHER';
   relatedId?: string;
 }
@@ -321,12 +332,19 @@ export interface ImageItem {
   category: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   users: User[];
   products: Product[];
   customers: Customer[];
   suppliers: Supplier[];
+  brands: Category[]; // Using Category for now since it's just id/name
+  categories: Category[];
   invoices: Invoice[];
   importOrders: ImportOrder[];
   returnImportOrders: ReturnImportOrder[];

@@ -53,6 +53,7 @@ interface AppContextProps extends AppState {
   updateWallet: (id: string, updates: Partial<Wallet>) => void;
   deleteWallet: (id: string) => void;
   addWalletTransaction: (transaction: WalletTransaction) => void;
+  syncData: () => Promise<void>;
 }
 
 const defaultPrintSettings: PrintSettings = {
@@ -74,6 +75,8 @@ const initialState: AppState = {
   currentUser: null,
   users: [],
   products: [],
+  brands: [],
+  categories: [],
   customers: [],
   suppliers: [],
   invoices: [],
@@ -117,6 +120,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           returnSalesOrders: Array.isArray(parsed.returnSalesOrders) ? parsed.returnSalesOrders : [],
           invoices: Array.isArray(parsed.invoices) ? parsed.invoices : initialState.invoices,
           products: Array.isArray(parsed.products) ? parsed.products : initialState.products,
+          brands: Array.isArray(parsed.brands) ? parsed.brands : initialState.brands,
+          categories: Array.isArray(parsed.categories) ? parsed.categories : initialState.categories,
           customers: Array.isArray(parsed.customers) ? parsed.customers : initialState.customers,
           suppliers: Array.isArray(parsed.suppliers) ? parsed.suppliers : initialState.suppliers,
           images: Array.isArray(parsed.images) ? parsed.images : [],
@@ -141,14 +146,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('cuongtin_erp_state', JSON.stringify(state));
   }, [state]);
 
-  // Fetch data from Google Sheets on mount
-  useEffect(() => {
-    const loadDataFromAPI = async () => {
-      try {
-        setIsLoading(true);
-        // Fetch core data in parallel
-        const [
-          apiProducts, 
+  const syncData = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch core data in parallel
+      const [
+        apiProducts, 
           apiCustomers, 
           apiSuppliers, 
           apiSerials, 
@@ -173,7 +176,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiWifiRecords,
           apiCameraAccounts,
           apiWallets,
-          apiWalletTransactions
+          apiWalletTransactions,
+          apiBrands,
+          apiCategories
         ] = await Promise.all([
           apiService.readSheet('Products'),
           apiService.readSheet('Customers'),
@@ -200,7 +205,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           apiService.readSheet('WifiRecords'),
           apiService.readSheet('CameraAccounts'),
           apiService.readSheet('Wallets'),
-          apiService.readSheet('WalletTransactions')
+          apiService.readSheet('WalletTransactions'),
+          apiService.readSheet('Brands'),
+          apiService.readSheet('Categories')
         ]);
 
         const mappedProducts = apiProducts.length > 0 ? apiProducts.map((p: any) => ({
@@ -335,10 +342,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setState(prev => ({
           ...prev,
           products: mappedProducts,
+          brands: apiBrands.length > 0 ? apiBrands.map((b: any) => ({
+            id: String(b.id || ''),
+            name: String(b.name || '')
+          })) : [],
+          categories: apiCategories.length > 0 ? apiCategories.map((c: any) => ({
+            id: String(c.id || ''),
+            name: String(c.name || '')
+          })) : [],
           customers: apiCustomers.length > 0 ? apiCustomers.map((c: any) => ({
             id: String(c.id || ''),
             name: String(c.name || ''),
             phone: String(c.phone || ''),
+            phone2: String(c.phone2 || ''),
             address: String(c.address || ''),
             location: String(c.location || ''),
             note: String(c.note || ''),
@@ -397,6 +413,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               shippingFee: Number(imp.shippingFee || 0),
               otherCost: Number(imp.otherCost || 0),
               note: String(imp.note || ''),
+              walletId: String(imp.walletId || ''),
               items: extractItems(imp, apiImportDetails, ['importID', 'importId', 'ImportID', 'importid']).map((item: any) => ({
                 ...item,
                 sn: typeof item.sn === 'string' ? item.sn.split(',').map((s: string) => s.trim()).filter(Boolean) : (Array.isArray(item.sn) ? item.sn : [])
@@ -419,7 +436,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             category: c.category as any,
             partner: String(c.partner || ''),
             note: String(c.note || ''),
-            refId: String(c.referenceId || c.refId || '')
+            refId: String(c.referenceId || c.refId || ''),
+            walletId: c.walletId ? String(c.walletId) : undefined
           })) : [],
           maintenanceRecords: apiMaintenance.length > 0 ? apiMaintenance.map((m: any) => ({
             id: String(m.id || ''),
@@ -525,19 +543,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             fileType: String(img.fileType || img['Định dạng'] || img.format || ''),
             category: String(img.category || img['Loại'] || img.type || 'KHÁC')
           })),
-          wallets: apiWallets && apiWallets.length > 0 ? apiWallets.map((w: any) => ({
-            id: String(w.id || ''),
-            name: String(w.name || ''),
-            type: (w.type === 'CASH' || w.type === 'BANK' || w.type === 'EWALLET') ? w.type : 'CASH',
-            balance: Number(w.balance || 0),
-            accountNumber: w.accountNumber ? String(w.accountNumber) : undefined,
-            bankName: w.bankName ? String(w.bankName) : undefined,
-            ownerName: w.ownerName ? String(w.ownerName) : undefined,
-            isActive: w.isActive === true || w.isActive === 'TRUE' || w.isActive === 'true' || String(w.isActive).toLowerCase() === 'true',
-            icon: String(w.icon || ''),
-            color: String(w.color || ''),
-            backgroundImage: String(w.backgroundImage || w.background || '')
-          })) : [],
+          wallets: (() => {
+            const tempWallets = apiWallets && apiWallets.length > 0 ? apiWallets.map((w: any) => ({
+              id: String(w.id || ''),
+              name: String(w.name || ''),
+              type: (w.type === 'CASH' || w.type === 'BANK' || w.type === 'EWALLET') ? w.type : 'CASH',
+              balance: Number(w.balance || 0),
+              accountNumber: w.accountNumber ? String(w.accountNumber) : undefined,
+              bankName: w.bankName ? String(w.bankName) : undefined,
+              ownerName: w.ownerName ? String(w.ownerName) : undefined,
+              isActive: w.isActive === true || w.isActive === 'TRUE' || w.isActive === 'true' || String(w.isActive).toLowerCase() === 'true',
+              icon: String(w.icon || ''),
+              color: String(w.color || ''),
+              backgroundImage: String(w.backgroundImage || w.background || '')
+            })) : [];
+            const uniqueMap = new Map();
+            tempWallets.forEach((w: any) => {
+              if (!uniqueMap.has(w.id)) {
+                uniqueMap.set(w.id, w);
+              }
+            });
+            return Array.from(uniqueMap.values());
+          })(),
           walletTransactions: apiWalletTransactions && apiWalletTransactions.length > 0 ? apiWalletTransactions.map((t: any) => ({
             id: String(t.id || ''),
             walletId: String(t.walletId || ''),
@@ -556,7 +583,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     };
 
-    loadDataFromAPI();
+  // Fetch data from Google Sheets on mount
+  useEffect(() => {
+    syncData();
   }, []);
 
   // Polling for new invoices to support notifications
@@ -772,6 +801,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: newCustomer.id,
       name: newCustomer.name,
       phone: newCustomer.phone?.startsWith('0') ? `'${newCustomer.phone}` : newCustomer.phone,
+      phone2: newCustomer.phone2?.startsWith('0') ? `'${newCustomer.phone2}` : newCustomer.phone2 || '',
       address: newCustomer.address || '',
       location: newCustomer.location || '',
       note: newCustomer.note || '',
@@ -788,9 +818,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       customers: (prev.customers || []).map(c => c.id === id ? { ...c, ...updates } : c)
     }));
     
-    const apiUpdates = { ...updates };
+    const apiUpdates: any = { ...updates };
     if (apiUpdates.phone?.startsWith('0')) {
       apiUpdates.phone = `'${apiUpdates.phone}`;
+    }
+    if (apiUpdates.phone2?.startsWith('0')) {
+      apiUpdates.phone2 = `'${apiUpdates.phone2}`;
     }
     await apiService.updateRecord('Customers', id, apiUpdates);
   };
@@ -835,7 +868,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       });
       
-      const newStockCards: StockCard[] = newInvoice.items.map(item => ({
+      const oldSns = new Set<string>();
+      if (isUpdate && existingInvoice) {
+        existingInvoice.items.forEach(item => {
+          if (item.sn && typeof item.sn === 'string') {
+            item.sn.split(',').forEach(s => oldSns.add(s.trim()));
+          }
+        });
+      }
+      
+      const newStockCards: StockCard[] = newInvoice.items.map((item, i) => ({
+        id: `SC_${newInvoice.id}_${i}`,
         prodId: item.id,
         type: 'XUAT',
         qty: item.qty,
@@ -846,12 +889,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         sn: item.sn ? item.sn.split(',').map(s => s.trim()) : []
       }));
 
+      // Find original cash/wallet transaction to modify if needed
+      let updatedCashTransactions = prev.cashTransactions || [];
+      const txToUpdate = isUpdate ? updatedCashTransactions.find(t => t.refId === newInvoice.id && t.category === 'SALES_REVENUE') : null;
+      if (txToUpdate) {
+        updatedCashTransactions = updatedCashTransactions.map(t => 
+          t.id === txToUpdate.id ? { ...t, amount: newInvoice.paid } : t
+        );
+      }
+
+      let updatedWalletTransactions = prev.walletTransactions || [];
+      const wtxToUpdate = isUpdate ? updatedWalletTransactions.find(t => t.relatedId === newInvoice.id && t.relatedType === 'INVOICE') : null;
+      if (wtxToUpdate) {
+        updatedWalletTransactions = updatedWalletTransactions.map(t => 
+          t.id === wtxToUpdate.id ? { ...t, amount: newInvoice.paid } : t
+        );
+      }
+
       // Update products stock in state
       const updatedProducts = (prev.products || []).map(p => {
         let newStock = p.stock || 0;
         
         // 1. Revert old stock if update
-        if (isUpdate && !p.isService) {
+        if (isUpdate && !p.isService && existingInvoice) {
           const oldItem = existingInvoice.items.find(i => i.id === p.id);
           if (oldItem) newStock += oldItem.qty;
         }
@@ -873,9 +933,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { 
         ...prev, 
         invoices: [...otherInvoices, newInvoice],
-        serials: (prev.serials || []).map(s => soldSns.has(s.sn) ? { ...s, status: 'SOLD' } : s),
+        serials: (prev.serials || []).map(s => {
+          if (soldSns.has(s.sn)) return { ...s, status: 'SOLD' };
+          if (isUpdate && oldSns.has(s.sn)) return { ...s, status: 'AVAILABLE' };
+          return s;
+        }),
         stockCards: [...prev.stockCards.filter(sc => sc.refId !== newInvoice.id), ...newStockCards],
-        products: updatedProducts
+        products: updatedProducts,
+        cashTransactions: updatedCashTransactions,
+        walletTransactions: updatedWalletTransactions
       };
     });
     
@@ -906,6 +972,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
         if (isUpdate) {
           await apiService.updateRecord('Invoices', newInvoice.id, syncData);
+          
+          // Also update CashLedger/Wallet if they exist
+          const cashTx = state.cashTransactions.find(t => t.refId === newInvoice.id && t.category === 'SALES_REVENUE');
+          if (cashTx) {
+            await apiService.updateRecord('CashLedger', cashTx.id, { amount: newInvoice.paid });
+          }
+          const wtx = state.walletTransactions.find(t => t.relatedId === newInvoice.id && t.relatedType === 'INVOICE');
+          if (wtx) {
+            await apiService.updateRecord('WalletTransactions', wtx.id, { amount: newInvoice.paid });
+          }
         } else {
           await apiService.createRecord('Invoices', syncData);
         }
@@ -919,6 +995,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           const newItem = newInvoice.items[i];
           const oldItem = isUpdate ? existingInvoice.items[i] : null;
           const detailId = `${newInvoice.id}_${i}`;
+          const scId = `SC_${newInvoice.id}_${i}`;
 
           if (newItem) {
             // Upsert detail
@@ -934,42 +1011,47 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               warrantyExpiry: newItem.warrantyExpiry || ''
             };
             
-            // Re-using createRecord here is risky if it appends, so we use updateRecord if isUpdate is true or if we detect it should be there.
-            // Since we use a deterministic ID, updateRecord is safer for "Edit" mode.
+            // Stock card data
+            const stockCardData = {
+              id: scId,
+              prodId: newItem.id,
+              productName: newItem.name,
+              type: 'XUAT',
+              qty: newItem.qty,
+              partner: newInvoice.customer,
+              date: newInvoice.date,
+              price: newItem.price,
+              refId: newInvoice.id,
+              sn: newItem.sn || ''
+            };
+            
             if (isUpdate && i < existingInvoice.items.length) {
               detailPromises.push(apiService.updateRecord('InvoiceDetails', detailId, detailData));
+              detailPromises.push(apiService.updateRecord('StockCards', scId, stockCardData));
             } else {
               detailPromises.push(apiService.createRecord('InvoiceDetails', detailData));
+              detailPromises.push(apiService.createRecord('StockCards', stockCardData));
             }
 
             // Sync product stock to DB
             const p = state.products.find(prod => prod.id === newItem.id);
             if (p && !p.isService) {
-              const currentStock = p.stock || 0;
-              // Stock is already updated in state optimistically, so the state.products might have the final value already? 
-              // Wait, state.products inside this async block might be stale.
-              // Best to recalculate or get the latest from state.
-              detailPromises.push(apiService.updateRecord('Products', newItem.id, { stock: p.stock }));
+              const adjustedStock = p.stock + (isUpdate && existingInvoice ? (existingInvoice.items.find(old => old.id === p.id)?.qty || 0) : 0) - newItem.qty;
+              detailPromises.push(apiService.updateRecord('Products', newItem.id, { stock: adjustedStock }));
             }
           } else if (isUpdate && oldItem) {
             // Item removed in edit: Delete detail row
             detailPromises.push(apiService.deleteRecord('InvoiceDetails', detailId));
+            detailPromises.push(apiService.deleteRecord('StockCards', scId));
             
             // Revert stock in DB for removed item
             const p = state.products.find(prod => prod.id === oldItem.id);
             if (p && !p.isService) {
-              detailPromises.push(apiService.updateRecord('Products', p.id, { stock: p.stock }));
+              detailPromises.push(apiService.updateRecord('Products', p.id, { stock: p.stock + oldItem.qty }));
             }
           }
         }
         
-        // Stock Card update
-        // (Assuming we just want to replace them if they existed)
-        // For simplicity, we create new ones but usually StockCards are immutable logs.
-        // However, user wants "no new rows".
-        // Stock cards are log entries, so maybe we keep them as is or delete-recreate?
-        // Let's just do details for now as that was the screenshot.
-
         await Promise.all(detailPromises);
       } catch (error) {
         console.error("Failed to sync invoice to cloud:", error);
@@ -1082,12 +1164,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addImportOrder = async (order: ImportOrder) => {
+    const existingOrder = state.importOrders?.find(o => o.id === order.id);
+    const isUpdate = !!existingOrder;
+
     const newOrder = {
       ...order,
       id: order.id || generateId('NH', state.importOrders || [])
     };
 
-    const newStockCards: StockCard[] = newOrder.items.map(item => ({
+    const newStockCards: StockCard[] = newOrder.items.map((item, i) => ({
+      id: `SC_${newOrder.id}_${i}`,
       prodId: item.id,
       type: 'NHAP',
       qty: item.qty,
@@ -1098,15 +1184,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       sn: item.sn || []
     }));
 
-    setState(prev => ({ 
-      ...prev, 
-      importOrders: [...(prev.importOrders || []), newOrder],
-      stockCards: [...(prev.stockCards || []), ...newStockCards]
-    }));
+    setState(prev => {
+      const otherOrders = isUpdate 
+        ? (prev.importOrders || []).filter(o => o.id !== newOrder.id)
+        : (prev.importOrders || []);
+
+      let updatedCashTransactions = prev.cashTransactions || [];
+      const txToUpdate = isUpdate ? updatedCashTransactions.find(t => t.refId === newOrder.id && t.category === 'IMPORT_PAYMENT') : null;
+      if (txToUpdate) {
+        updatedCashTransactions = updatedCashTransactions.map(t => 
+          t.id === txToUpdate.id ? { ...t, amount: newOrder.paid, walletId: newOrder.walletId } : t
+        );
+      }
+
+      let updatedWalletTransactions = prev.walletTransactions || [];
+      const wtxToUpdate = isUpdate ? updatedWalletTransactions.find(t => t.relatedId === newOrder.id && t.relatedType === 'PURCHASE') : null;
+      if (wtxToUpdate) {
+        updatedWalletTransactions = updatedWalletTransactions.map(t => 
+          t.id === wtxToUpdate.id ? { ...t, amount: newOrder.paid, walletId: newOrder.walletId } : t
+        );
+      }
+        
+      const updatedProducts = (prev.products || []).map(p => {
+        let newStock = p.stock || 0;
+        
+        // Reverse old stock if update
+        if (isUpdate && existingOrder && !p.isService) {
+          const oldItem = existingOrder.items.find(i => i.id === p.id);
+          if (oldItem) newStock -= oldItem.qty; // Reverse the previous import meaning we subtract the previously added amount
+        }
+        
+        // Apply new stock
+        const newItem = newOrder.items.find(i => i.id === p.id);
+        if (newItem && !p.isService) {
+          newStock += newItem.qty;
+        }
+        
+        return { ...p, stock: newStock, importPrice: newItem ? newItem.price : p.importPrice };
+      });
+        
+      return { 
+        ...prev, 
+        importOrders: [...otherOrders, newOrder],
+        stockCards: [...(prev.stockCards || []).filter(sc => sc.refId !== newOrder.id), ...newStockCards],
+        products: updatedProducts,
+        cashTransactions: updatedCashTransactions,
+        walletTransactions: updatedWalletTransactions
+      };
+    });
     
     (async () => {
       try {
-        await apiService.createRecord('Imports', {
+        const walletObj = state.wallets.find(w => w.id === newOrder.walletId);
+        
+        const syncData = {
           id: newOrder.id,
           createdAt: newOrder.date,
           supplierId: newOrder.supplier,
@@ -1121,35 +1252,88 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           debt: newOrder.debt,
           status: newOrder.status,
           note: newOrder.note || '',
+          walletId: newOrder.walletId || '',
+          walletName: walletObj ? walletObj.name : '',
           items: JSON.stringify(newOrder.items)
-        });
+        };
 
-        for (let i = 0; i < newOrder.items.length; i++) {
-          const item = newOrder.items[i];
-          await apiService.createRecord('ImportDetails', {
-            id: `${newOrder.id}_${i}`,
-            importID: newOrder.id,
-            productId: item.id,
-            productName: item.name,
-            quantity: item.qty,
-            price: item.price,
-            subTotal: item.qty * item.price,
-            sn: item.sn ? item.sn.join(',') : ''
-          });
-
-          await apiService.createRecord('StockCards', {
-            id: `SC${Date.now()}${i}`,
-            prodId: item.id,
-            productName: item.name,
-            type: 'NHAP',
-            qty: item.qty,
-            partner: newOrder.supplier,
-            date: newOrder.date,
-            price: item.price,
-            refId: newOrder.id,
-            sn: item.sn ? item.sn.join(',') : ''
-          });
+        if (isUpdate) {
+          await apiService.updateRecord('Imports', newOrder.id, syncData);
+          
+          const cashTx = state.cashTransactions.find(t => t.refId === newOrder.id && t.category === 'IMPORT_PAYMENT');
+          if (cashTx) {
+            await apiService.updateRecord('CashLedger', cashTx.id, { amount: newOrder.paid, walletId: newOrder.walletId || '' });
+          }
+          const wtx = state.walletTransactions.find(t => t.relatedId === newOrder.id && t.relatedType === 'PURCHASE');
+          if (wtx) {
+            await apiService.updateRecord('WalletTransactions', wtx.id, { amount: newOrder.paid, walletId: newOrder.walletId || '' });
+          }
+        } else {
+          await apiService.createRecord('Imports', syncData);
         }
+
+        const maxItems = Math.max(newOrder.items.length, isUpdate && existingOrder ? existingOrder.items.length : 0);
+
+        const detailPromises = [];
+        for (let i = 0; i < maxItems; i++) {
+          const newItem = newOrder.items[i];
+          const oldItem = isUpdate && existingOrder ? existingOrder.items[i] : null;
+          const detailId = `${newOrder.id}_${i}`;
+          const scId = `SC_${newOrder.id}_${i}`;
+
+          if (newItem) {
+            const detailData = {
+              id: detailId,
+              importID: newOrder.id,
+              productId: newItem.id,
+              productName: newItem.name,
+              quantity: newItem.qty,
+              price: newItem.price,
+              subTotal: newItem.qty * newItem.price,
+              sn: newItem.sn ? newItem.sn.join(',') : ''
+            };
+            
+            const stockCardData = {
+              id: scId,
+              prodId: newItem.id,
+              productName: newItem.name,
+              type: 'NHAP',
+              qty: newItem.qty,
+              partner: newOrder.supplier,
+              date: newOrder.date,
+              price: newItem.price,
+              refId: newOrder.id,
+              sn: newItem.sn ? newItem.sn.join(',') : ''
+            };
+
+            if (isUpdate && i < (existingOrder?.items.length || 0)) {
+              detailPromises.push(apiService.updateRecord('ImportDetails', detailId, detailData));
+              detailPromises.push(apiService.updateRecord('StockCards', scId, stockCardData));
+            } else {
+              detailPromises.push(apiService.createRecord('ImportDetails', detailData));
+              detailPromises.push(apiService.createRecord('StockCards', stockCardData));
+            }
+
+            const p = state.products.find(prod => prod.id === newItem.id);
+            if (p && !p.isService) {
+              detailPromises.push(apiService.updateRecord('Products', newItem.id, { 
+                stock: p.stock - (existingOrder?.items.find(old => old.id === p.id)?.qty || 0) + newItem.qty, // Estimate new stock or we can ignore perfect async match and use the computed state later, but let's carefully compute it
+                costPrice: newItem.price
+              }));
+            }
+          } else if (isUpdate && oldItem) {
+            detailPromises.push(apiService.deleteRecord('ImportDetails', detailId));
+            detailPromises.push(apiService.deleteRecord('StockCards', scId));
+            
+            const p = state.products.find(prod => prod.id === oldItem.id);
+            if (p && !p.isService) {
+              detailPromises.push(apiService.updateRecord('Products', p.id, { 
+                stock: p.stock - oldItem.qty 
+              }));
+            }
+          }
+        }
+        await Promise.all(detailPromises);
       } catch (error) {
         console.error("Failed to sync import to cloud:", error);
       }
@@ -1199,6 +1383,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       apiUpdates.status = updates.debt > 0 ? 'Còn nợ' : 'Hoàn tất';
     } else if (updates.status !== undefined) {
       apiUpdates.status = updates.status;
+    }
+    
+    if (updates.walletId !== undefined) {
+      apiUpdates.walletId = updates.walletId;
+      const walletObj = state.wallets.find(w => w.id === updates.walletId);
+      apiUpdates.walletName = walletObj ? walletObj.name : '';
     }
     
     await apiService.updateRecord('Imports', id, apiUpdates);
@@ -1394,7 +1584,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       amount: transaction.amount,
       referenceId: transaction.refId || '',
       partner: transaction.partner || '',
-      note: transaction.note || ''
+      note: transaction.note || '',
+      walletId: transaction.walletId || ''
     });
 
     if (transaction.walletId) {
@@ -1853,7 +2044,8 @@ ${updates.purchaseId ? `<b>Đơn hàng liên kết:</b> ${updates.purchaseId}\n`
       addWallet,
       updateWallet,
       deleteWallet,
-      addWalletTransaction
+      addWalletTransaction,
+      syncData
     }}>
       {children}
     </AppContext.Provider>

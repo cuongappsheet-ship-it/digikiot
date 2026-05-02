@@ -16,7 +16,7 @@ import { AnimatePresence } from 'motion/react';
 
 export const Inventory: React.FC = () => {
   const navigate = useNavigate();
-  const { products, addProduct, stockCards, invoices, importOrders, serials, updateProduct, suppliers, setImportDraft, returnImportOrders, returnSalesOrders } = useAppContext();
+  const { products, addProduct, stockCards, invoices, importOrders, serials, updateProduct, suppliers, setImportDraft, returnImportOrders, returnSalesOrders, brands, categories } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
@@ -990,9 +990,13 @@ export const Inventory: React.FC = () => {
                     type="text" 
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
+                    list="category-suggestions"
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none mt-1 focus:border-blue-400 focus:bg-white transition-all shadow-sm" 
                     placeholder="Linh kiện..." 
                   />
+                  <datalist id="category-suggestions">
+                    {categories.map((c, i) => <option key={`${c.id}-${i}`} value={c.name} />)}
+                  </datalist>
                 </div>
 
                 <div>
@@ -1001,9 +1005,13 @@ export const Inventory: React.FC = () => {
                     type="text" 
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
+                    list="brand-suggestions"
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none mt-1 focus:border-blue-400 focus:bg-white transition-all shadow-sm" 
                     placeholder="Samsung, Dell..." 
                   />
+                  <datalist id="brand-suggestions">
+                    {brands.map((b, i) => <option key={`${b.id}-${i}`} value={b.name} />)}
+                  </datalist>
                 </div>
 
                 <div>

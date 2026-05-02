@@ -27,6 +27,17 @@ const AVAILABLE_COLORS = [
   { id: 'cyan', bg: 'bg-cyan-500', light: 'bg-cyan-50', text: 'text-cyan-500' },
 ];
 
+const WALLET_CATEGORY_LABELS: Record<string, string> = {
+  'DEPOSIT': 'Nạp tiền vào ví',
+  'SALES_REVENUE': 'Doanh thu bán/sửa chữa',
+  'DEBT_COLLECTION': 'Thu nợ khách hàng',
+  'WITHDRAW': 'Rút tiền',
+  'IMPORT_PAYMENT': 'Chi phí nhập hàng',
+  'DEBT_PAYMENT': 'Trả nợ NCC',
+  'EXPENSE': 'Chi phí khác',
+  'OTHER': 'Khác'
+};
+
 export const WalletManagement: React.FC = () => {
   const { currentUser, wallets, walletTransactions, addWallet, updateWallet, deleteWallet, addWalletTransaction } = useAppContext();
 
@@ -50,6 +61,7 @@ export const WalletManagement: React.FC = () => {
 
   // Transaction form states
   const [txType, setTxType] = useState<'IN' | 'OUT'>('IN');
+  const [txCategory, setTxCategory] = useState('OTHER');
   const [txAmount, setTxAmount] = useState('');
   const [txDescription, setTxDescription] = useState('');
 
@@ -106,6 +118,7 @@ export const WalletManagement: React.FC = () => {
       amount,
       description: txDescription || (txType === 'IN' ? 'Nạp tiền vào ví' : 'Rút tiền khỏi ví'),
       date: new Date().toLocaleString('vi-VN'),
+      category: txCategory,
       relatedType: 'OTHER'
     });
 
@@ -142,6 +155,7 @@ export const WalletManagement: React.FC = () => {
   const openTransactionModal = (wallet: Wallet) => {
     setEditingWallet(wallet);
     setTxType('IN');
+    setTxCategory('OTHER');
     setTxAmount('');
     setTxDescription('');
     setIsTransactionModalOpen(true);
@@ -203,8 +217,8 @@ export const WalletManagement: React.FC = () => {
 
       {activeTab === 'wallets' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {wallets.map(wallet => (
-            <div key={wallet.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col h-full">
+          {wallets.map((wallet, idx) => (
+            <div key={`${wallet.id}-${idx}`} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col h-full">
               {wallet.backgroundImage && (
                 <div 
                   className="absolute inset-0 z-0 opacity-[0.06] bg-cover bg-center pointer-events-none"
@@ -285,8 +299,8 @@ export const WalletManagement: React.FC = () => {
               className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold outline-none focus:border-blue-400"
             >
               <option value="ALL">Tất cả ví & ngân hàng</option>
-              {wallets.map(w => (
-                <option key={w.id} value={w.id}>{w.name}</option>
+              {wallets.map((w, idx) => (
+                <option key={`${w.id}-${idx}`} value={w.id}>{w.name}</option>
               ))}
             </select>
           </div>
@@ -298,15 +312,16 @@ export const WalletManagement: React.FC = () => {
                     <th className="px-6 py-4">Thời gian</th>
                     <th className="px-6 py-4">Ví giao dịch</th>
                     <th className="px-6 py-4">Loại GD</th>
+                    <th className="px-6 py-4">Danh mục</th>
                     <th className="px-6 py-4 text-right">Số tiền</th>
                     <th className="px-6 py-4 max-w-[250px]">Ghi chú</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {walletTransactions.filter(t => selectedWalletFilter === 'ALL' || t.walletId === selectedWalletFilter).map(t => {
+                  {walletTransactions.filter(t => selectedWalletFilter === 'ALL' || t.walletId === selectedWalletFilter).map((t, idx) => {
                     const wallet = wallets.find(w => w.id === t.walletId);
                   return (
-                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={`${t.id}-${idx}`} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500 font-medium">
                         {t.date}
                       </td>
@@ -316,6 +331,11 @@ export const WalletManagement: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded inline-flex text-[10px] font-black uppercase ${t.type === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                           {t.type === 'IN' ? 'THU VÀO' : 'CHI RA'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-bold text-slate-600 text-xs">
+                          {t.category ? WALLET_CATEGORY_LABELS[t.category] || 'Khác' : 'Khác'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -345,9 +365,9 @@ export const WalletManagement: React.FC = () => {
 
       {/* Wallets Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] max-w-md md:rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="px-6 py-4 pt-12 md:pt-4 flex justify-between items-center border-b border-slate-100 bg-slate-50 shrink-0">
               <h3 className="font-bold text-slate-800 text-lg">
                 {editingWallet ? 'Cập Nhật Ví' : 'Thêm Ví Mới'}
               </h3>
@@ -356,7 +376,7 @@ export const WalletManagement: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Loại Ví</label>
                 <div className="flex gap-2">
@@ -507,7 +527,7 @@ export const WalletManagement: React.FC = () => {
               )}
             </div>
             
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
               <button 
                 onClick={closeModal}
                 className="flex-1 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
@@ -523,9 +543,9 @@ export const WalletManagement: React.FC = () => {
 
       {/* Transaction Modal */}
       {isTransactionModalOpen && editingWallet && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
-            <div className="px-6 py-4 flex justify-between items-center border-b border-slate-100 bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] max-w-md md:rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="px-6 py-4 pt-12 md:pt-4 flex justify-between items-center border-b border-slate-100 bg-slate-50 shrink-0">
               <h3 className="font-bold text-slate-800 text-lg">
                 Tạo Giao Dịch
               </h3>
@@ -534,19 +554,45 @@ export const WalletManagement: React.FC = () => {
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Loại giao dịch</label>
                 <div className="flex gap-2">
                   <button 
-                    onClick={() => setTxType('IN')}
+                    onClick={() => { setTxType('IN'); setTxCategory('OTHER'); }}
                     className={`flex-1 py-2 text-xs font-bold rounded-xl transition-colors border ${txType === 'IN' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}
                   >THU VÀO</button>
                   <button 
-                    onClick={() => setTxType('OUT')}
+                    onClick={() => { setTxType('OUT'); setTxCategory('OTHER'); }}
                     className={`flex-1 py-2 text-xs font-bold rounded-xl transition-colors border ${txType === 'OUT' ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}
                   >CHI RA</button>
                 </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Danh mục</label>
+                <select
+                  value={txCategory}
+                  onChange={(e) => setTxCategory(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:border-blue-400 text-sm font-semibold"
+                >
+                  {txType === 'IN' ? (
+                    <>
+                      <option value="DEPOSIT">Nạp tiền vào ví</option>
+                      <option value="SALES_REVENUE">Doanh thu bán/sửa chữa</option>
+                      <option value="DEBT_COLLECTION">Thu nợ khách hàng</option>
+                      <option value="OTHER">Thêm mới / Khác</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="WITHDRAW">Rút tiền</option>
+                      <option value="IMPORT_PAYMENT">Chi phí nhập hàng</option>
+                      <option value="DEBT_PAYMENT">Trả nợ NCC</option>
+                      <option value="EXPENSE">Chi phí khác</option>
+                      <option value="OTHER">Thêm mới / Khác</option>
+                    </>
+                  )}
+                </select>
               </div>
 
               <div className="space-y-1.5">
@@ -583,7 +629,7 @@ export const WalletManagement: React.FC = () => {
               </div>
             </div>
             
-            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3 shrink-0">
               <button 
                 onClick={closeTransactionModal}
                 className="flex-1 py-3 rounded-xl font-bold text-sm bg-white border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"

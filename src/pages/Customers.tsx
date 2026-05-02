@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, UserPlus, User, X, FileText, Calendar, Wallet, ChevronRight, CreditCard, Hash, Printer, Settings, HelpCircle, List, MoreHorizontal, Send, Download, SlidersHorizontal, Plus, Edit3, ChevronLeft, History, Wrench, ShieldCheck, ClipboardList, Map, MapPin, Loader2, Wifi, Camera } from 'lucide-react';
+import { Search, UserPlus, User, X, FileText, Calendar, Wallet, ChevronRight, CreditCard, Hash, Printer, Settings, HelpCircle, List, MoreHorizontal, Send, Download, SlidersHorizontal, Plus, Edit3, ChevronLeft, History, Wrench, ShieldCheck, ClipboardList, Map, MapPin, Loader2, Wifi, Camera, Phone } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Customer, Invoice, CashTransaction, MaintenanceRecord } from '../types';
 import { formatNumber, parseFormattedNumber, formatDateTime } from '../lib/utils';
@@ -26,6 +26,7 @@ export const Customers: React.FC = () => {
   
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phone2, setPhone2] = useState('');
   const [address, setAddress] = useState('');
   const [location, setLocation] = useState('');
   const [note, setNote] = useState('');
@@ -111,6 +112,7 @@ export const Customers: React.FC = () => {
   const filteredCustomers = (customers || []).filter(c => 
     (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (c.phone || '').includes(searchTerm) ||
+    (c.phone2 || '').includes(searchTerm) ||
     (c.address || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.location || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -130,6 +132,7 @@ export const Customers: React.FC = () => {
     const customerData = { 
       name, 
       phone, 
+      phone2,
       address, 
       location, 
       note,
@@ -150,6 +153,7 @@ export const Customers: React.FC = () => {
   const resetForm = () => {
     setName('');
     setPhone('');
+    setPhone2('');
     setAddress('');
     setLocation('');
     setNote('');
@@ -159,6 +163,7 @@ export const Customers: React.FC = () => {
   const handleEdit = (customer: Customer) => {
     setName(customer.name);
     setPhone(customer.phone);
+    setPhone2(customer.phone2 || '');
     setAddress(customer.address || '');
     setLocation(customer.location || '');
     setNote(customer.note || '');
@@ -374,7 +379,10 @@ export const Customers: React.FC = () => {
                     </td>
                     <td className="p-3 text-sm text-slate-600 border-b border-slate-100">{c.id}</td>
                     <td className="p-3 text-sm text-slate-800 border-b border-slate-100">{c.name}</td>
-                    <td className="p-3 text-sm text-slate-600 border-b border-slate-100">{c.phone}</td>
+                    <td className="p-3 text-sm text-slate-600 border-b border-slate-100">
+                      {c.phone}
+                      {c.phone2 && <><br/><span className="text-xs text-slate-400">{c.phone2}</span></>}
+                    </td>
                     <td className="p-3 text-sm text-slate-600 border-b border-slate-100">{c.address || '---'}</td>
                     <td className="p-3 text-sm text-slate-600 border-b border-slate-100">{c.location || '---'}</td>
                     <td className="p-3 text-sm font-bold text-red-600 border-b border-slate-100 text-right">{formatNumber(stats.debt)}</td>
@@ -418,8 +426,23 @@ export const Customers: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-xs text-slate-500 font-medium">{c.phone}</p>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-slate-500 font-medium">{c.phone}</p>
+                        {c.phone && (
+                          <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors">
+                            <Phone size={12} className="fill-emerald-600 text-transparent" />
+                          </a>
+                        )}
+                      </div>
+                      {c.phone2 && (
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-slate-400 font-medium">{c.phone2}</p>
+                          <a href={`tel:${c.phone2}`} onClick={(e) => e.stopPropagation()} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-full hover:bg-emerald-100 transition-colors">
+                            <Phone size={12} className="fill-emerald-600 text-transparent" />
+                          </a>
+                        </div>
+                      )}
                       <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">{c.location || 'Chưa định vị'}</p>
                     </div>
                     <button 
@@ -1405,7 +1428,7 @@ export const Customers: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-4 bg-slate-900/50 backdrop-blur-sm print:hidden">
           <div className="bg-white w-full max-w-md md:rounded-xl rounded-none shadow-2xl overflow-hidden p-6 md:p-8 flex flex-col h-full md:max-h-[95vh] animate-in slide-in-from-bottom-4 duration-300">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h3 className="text-lg font-black text-slate-800 tracking-tighter uppercase">
+              <h3 className="text-lg font-black text-slate-800 tracking-tighter">
                 {editingCustomerId ? 'Cập nhật Khách Hàng' : 'Thêm Khách Hàng'}
               </h3>
               <button onClick={() => { setIsModalOpen(false); resetForm(); }} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-200 transition-colors flex items-center justify-center">
@@ -1414,27 +1437,37 @@ export const Customers: React.FC = () => {
             </div>
             <div className="space-y-4 overflow-y-auto flex-1 pr-2">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Tên khách hàng</label>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Tên khách hàng</label>
                 <input 
                   type="text" 
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 uppercase shadow-inner" 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 shadow-inner" 
                   placeholder="Tên khách hàng..." 
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Số điện thoại</label>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Số điện thoại</label>
                 <input 
                   type="text" 
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 uppercase shadow-inner" 
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 shadow-inner" 
                   placeholder="Số điện thoại..." 
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Địa chỉ</label>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Số điện thoại 2</label>
+                <input 
+                  type="text" 
+                  value={phone2}
+                  onChange={(e) => setPhone2(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 shadow-inner" 
+                  placeholder="Số điện thoại 2..." 
+                />
+              </div>
+              <div>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Địa chỉ</label>
                 <input 
                   type="text" 
                   value={address}
@@ -1444,7 +1477,7 @@ export const Customers: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Khu vực (Local)</label>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Khu vực (Local)</label>
                 <div className="relative group">
                   <input 
                     type="text" 
@@ -1465,7 +1498,7 @@ export const Customers: React.FC = () => {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Ghi chú</label>
+                <label className="text-[12px] font-bold text-slate-600 mb-1 block">Ghi chú</label>
                 <textarea 
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
