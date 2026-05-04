@@ -265,6 +265,8 @@ return () => clearInterval(timer);
 
   useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
   useMobileBackModal(showCustomerResults, () => setShowCustomerResults(false)); // auto-injected
+  useMobileBackModal(!!selectedTaskDetail, () => setSelectedTaskDetail(null));
+  useMobileBackModal(!!statusConfirm, () => setStatusConfirm(null));
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative overflow-hidden">

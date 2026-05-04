@@ -211,6 +211,9 @@ export const Maintenance: React.FC = () => {
   useMobileBackModal(statusConfirmModal.isOpen, () => setStatusConfirmModal({ isOpen: false, newStatus: null, recordId: null }));
   useMobileBackModal(isInvoiceModalOpen, () => setIsInvoiceModalOpen(false));
   useMobileBackModal(isSerialModalOpen, () => setIsSerialModalOpen(false));
+  useMobileBackModal(customerSuggestions.length > 0, () => setCustomerSuggestions([]));
+  useMobileBackModal(externalDeviceSuggestions.length > 0, () => setExternalDeviceSuggestions([]));
+  useMobileBackModal(isEditingRecord, () => setIsEditingRecord(false));
 
   // Lock scroll when any modal is open
   useScrollLock(

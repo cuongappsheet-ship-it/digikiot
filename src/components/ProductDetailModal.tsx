@@ -3,6 +3,7 @@ import { X, ArrowDownLeft, ArrowUpRight, Barcode, Search, Edit3, Image as ImageI
 import { useAppContext } from '../context/AppContext';
 import { Product, Invoice, ImportOrder, ReturnImportOrder, ReturnSalesOrder } from '../types';
 import { formatNumber } from '../lib/utils';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 interface ProductDetailModalProps {
   product: Product;
@@ -23,6 +24,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [stockFilter, setStockFilter] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
   const [serialSearchTerm, setSerialSearchTerm] = useState('');
   const [serialStatusTab, setSerialStatusTab] = useState<'ALL' | 'IN_STOCK' | 'SOLD'>('IN_STOCK');
+
+  useMobileBackModal(!!product, onClose);
 
   const productStockHistory = useMemo(() => {
     // ... logic remains the same ...

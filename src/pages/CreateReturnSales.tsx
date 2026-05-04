@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { Product, InvoiceItem, Customer, CashTransaction, ReturnSalesOrder, Invoice } from '../types';
 import { formatNumber, parseFormattedNumber } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
+import { useMobileBackModal } from '../hooks/useMobileBackModal';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export const CreateReturnSales: React.FC = () => {
@@ -36,6 +37,8 @@ export const CreateReturnSales: React.FC = () => {
   }, [location.state, customers]);
   
   const [invoiceSuggestions, setInvoiceSuggestions] = useState<Invoice[]>([]);
+
+  useMobileBackModal(invoiceSuggestions.length > 0, () => setInvoiceSuggestions([]));
 
   const selectedItems = cart.filter(item => item.selected);
   const totalGoods = selectedItems.reduce((sum, item) => sum + (item.price * item.qty), 0);

@@ -102,6 +102,7 @@ return (externalSerials || []).filter(s =>
   useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
   useMobileBackModal(showCustomerDropdown, () => setShowCustomerDropdown(false)); // auto-injected
   useMobileBackModal(isCustomerModalOpen, () => setIsCustomerModalOpen(false)); // auto-injected
+  useMobileBackModal(!!selectedSerialDetail, () => setSelectedSerialDetail(null));
 
   return (
     <div className="flex flex-col h-[calc(100vh-[96px])] bg-white md:rounded-xl shadow-sm border border-slate-200 md:m-6 overflow-hidden">

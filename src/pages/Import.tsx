@@ -435,8 +435,9 @@ return (
   useMobileBackModal(isMobileProductSearchOpen, () => setIsMobileProductSearchOpen(false)); // auto-injected
   useMobileBackModal(isMobileSupplierSearchOpen, () => setIsMobileSupplierSearchOpen(false)); // auto-injected
   useMobileBackModal(isMobileCheckoutOpen, () => setIsMobileCheckoutOpen(false)); // auto-injected
-  useMobileBackModal(isSubmitting, () => setIsSubmitting(false)); // auto-injected
   useMobileBackModal(showConfirmModal, () => setShowConfirmModal(false)); // auto-injected
+  useMobileBackModal(!!showSuccessModal, () => setShowSuccessModal(false));
+  useMobileBackModal(!!viewingProduct, () => setViewingProduct(null));
 
   return (
     <>

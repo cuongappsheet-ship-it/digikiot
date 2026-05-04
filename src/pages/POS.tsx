@@ -528,12 +528,13 @@ return (
 
   useMobileBackModal(isCustomerModalOpen, () => setIsCustomerModalOpen(false)); // auto-injected
   useMobileBackModal(isSerialModalOpen, () => setIsSerialModalOpen(false)); // auto-injected
-  useMobileBackModal(isQuickAddModalOpen, () => setIsQuickAddModalOpen(false)); // auto-injected
+  useMobileBackModal(isQuickAddModalOpen, handleCloseQuickAddModal);
   useMobileBackModal(isMobileCustomerSearchOpen, () => setIsMobileCustomerSearchOpen(false)); // auto-injected
   useMobileBackModal(isMobileProductSearchOpen, () => setIsMobileProductSearchOpen(false)); // auto-injected
   useMobileBackModal(isMobileCheckoutOpen, () => setIsMobileCheckoutOpen(false)); // auto-injected
   useMobileBackModal(showDraftPrompt, () => setShowDraftPrompt(false)); // auto-injected
-  useMobileBackModal(isCheckingOut, () => setIsCheckingOut(false)); // auto-injected
+  useMobileBackModal(!!showSuccessModal, () => setShowSuccessModal(null));
+  useMobileBackModal(!!checkoutConfirmModal, () => setCheckoutConfirmModal(null));
 
   return (
     <div className="flex flex-col bg-slate-100 font-sans">

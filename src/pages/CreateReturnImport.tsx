@@ -232,6 +232,7 @@ return () => clearTimeout(handler);
     navigate('/return-import');
   };
 
+  useMobileBackModal(orderSuggestions.length > 0, () => setOrderSuggestions([]));
   useMobileBackModal(showConfirmModal, () => setShowConfirmModal(false)); // auto-injected
 
   return (

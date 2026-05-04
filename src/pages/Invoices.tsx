@@ -157,6 +157,7 @@ export const Invoices: React.FC = () => {
 
   useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
   useMobileBackModal(isProcessingPayment, () => setIsProcessingPayment(false)); // auto-injected
+  useMobileBackModal(!!selectedInvoice, () => setSelectedInvoice(null));
 return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col mx-auto w-full">

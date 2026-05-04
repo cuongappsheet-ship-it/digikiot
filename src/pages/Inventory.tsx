@@ -324,8 +324,6 @@ return (
 
   const totalStock = filteredProducts.reduce((sum, p) => sum + (p.stock || 0), 0);
 
-  useMobileBackModal(isSaving, () => setIsSaving(false)); // auto-injected
-  useMobileBackModal(hasSerial, () => setHasSerial(false)); // auto-injected
   useMobileBackModal(isLibraryOpen, () => setIsLibraryOpen(false)); // auto-injected
 
   return (
