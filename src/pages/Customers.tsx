@@ -10,7 +10,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const Customers: React.FC = () => {
-  const { customers, addCustomer, updateCustomer, invoices, updateInvoice, addCashTransaction, returnSalesOrders, currentUser, cashTransactions, maintenanceRecords, tasks, wifiRecords, cameraAccounts } = useAppContext();
+  const { customers, addCustomer, updateCustomer, invoices, updateInvoice, addCashTransaction, returnSalesOrders, currentUser, cashTransactions, maintenanceRecords, tasks, wifiRecords, cameraAccounts, wallets } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -229,6 +229,10 @@ export const Customers: React.FC = () => {
   };
 
   const executePayment = () => {
+    if (!paymentWalletId) {
+      alert('Vui lòng chọn ví thanh toán!');
+      return;
+    }
     const payValue = parseFormattedNumber(paymentAmount);
     if (isNaN(payValue) || payValue <= 0) return alert('Số tiền không hợp lệ');
 
@@ -241,7 +245,8 @@ export const Customers: React.FC = () => {
       category: 'DEBT_COLLECTION',
       partner: selectedCustomer?.name || '',
       note: paymentType === 'SINGLE' ? `Thu nợ hóa đơn ${targetInvoiceId}` : `Thu nợ tổng KH ${selectedCustomer?.name}`,
-      refId: targetInvoiceId || undefined
+      refId: targetInvoiceId || undefined,
+      walletId: paymentWalletId
     };
 
     if (paymentType === 'SINGLE' && targetInvoiceId) {
@@ -293,9 +298,10 @@ export const Customers: React.FC = () => {
   };
 
 
-  useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
-  useMobileBackModal(isLocating, () => setIsLocating(false)); // auto-injected
-  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
+  useMobileBackModal(isModalOpen, () => setIsModalOpen(false));
+  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false));
+  useMobileBackModal(!!selectedCustomer, () => setSelectedCustomer(null));
+  useMobileBackModal(!!selectedInvoice, () => setSelectedInvoice(null));
 return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
       {/* Print Template Container */}
@@ -510,12 +516,27 @@ return (
           <div className="bg-slate-50 w-full max-w-4xl h-full md:h-[90vh] md:rounded-xl rounded-none shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-300">
             <div className="bg-white p-6 border-b border-slate-200 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setSelectedCustomer(null)}
+                  className="md:hidden w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-400 rounded-full hover:bg-slate-200 transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                </button>
                 <div className="w-12 h-12 bg-pink-600 rounded-lg flex items-center justify-center text-white shadow-lg">
                   <User size={24} />
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-800 tracking-tighter">{selectedCustomer.name}</h3>
-                  <p className="text-xs text-slate-500 font-bold tracking-widest">{selectedCustomer.phone}</p>
+                  <div className="flex flex-col">
+                    <a href={`tel:${selectedCustomer.phone}`} className="text-xs text-slate-500 font-bold tracking-widest hover:text-blue-600 transition-colors">
+                      {selectedCustomer.phone}
+                    </a>
+                    {selectedCustomer.phone2 && (
+                      <a href={`tel:${selectedCustomer.phone2}`} className="text-[10px] text-slate-400 font-bold tracking-widest hover:text-blue-600 transition-colors">
+                        SĐT 2: {selectedCustomer.phone2}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -733,6 +754,19 @@ return (
                             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Thông tin cơ bản</h4>
                           </div>
                           <div className="space-y-4">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">Số điện thoại</span>
+                              <div className="flex items-center gap-3">
+                                <a href={`tel:${selectedCustomer.phone}`} className="text-sm text-slate-800 font-black px-3 py-2 bg-emerald-50 text-emerald-600 rounded-xl flex items-center gap-2 hover:bg-emerald-100 transition-all active:scale-95 border border-emerald-100">
+                                  <Phone size={14} className="fill-emerald-600 text-transparent" /> {selectedCustomer.phone} (Gọi SIM)
+                                </a>
+                                {selectedCustomer.phone2 && (
+                                  <a href={`tel:${selectedCustomer.phone2}`} className="text-sm text-slate-800 font-black px-3 py-2 bg-blue-50 text-blue-600 rounded-xl flex items-center gap-2 hover:bg-blue-100 transition-all active:scale-95 border border-blue-100">
+                                    <Phone size={14} className="fill-blue-600 text-transparent" /> {selectedCustomer.phone2} (SĐT 2)
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                             <div className="flex flex-col gap-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase">Địa chỉ</span>
                               <span className="text-sm text-slate-800 font-bold">{selectedCustomer.address || '---'}</span>
@@ -1416,6 +1450,20 @@ return (
                     ? "Hệ thống sẽ tự động trừ nợ cho các hóa đơn cũ nhất trước (FIFO)."
                     : "Số tiền sẽ được trừ trực tiếp vào hóa đơn đang chọn."}
                 </p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Ví thanh toán</label>
+                <select
+                  value={paymentWalletId || ''}
+                  onChange={e => setPaymentWalletId(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-black outline-none focus:border-blue-400 text-slate-700 shadow-inner appearance-none relative"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em`, paddingRight: `2.5rem` }}
+                >
+                  <option value="" disabled>Chọn ví</option>
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
               </div>
               <button 
                 onClick={executePayment}

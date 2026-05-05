@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { AppState, Product, Customer, Supplier, Invoice, ImportOrder, CashTransaction, POSDraft, ImportDraft, MaintenanceRecord, MaintenanceTransfer, ReturnImportOrder, ReturnSalesOrder, User, Serial, StockCard, PrintSettings, ExternalSerial, ImageItem, Task, TelegramSettings, WifiRecord, CameraAccountRecord, Wallet, WalletTransaction } from '../types';
 import { apiService } from '../services/api';
 import { generateId } from '../lib/idUtils';
+import { formatDateTime } from '../lib/utils';
 import { sendNotification, sendTelegramMessage } from '../lib/notification';
 
 interface AppContextProps extends AppState {
@@ -222,7 +223,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           category: String(p.category || ''),
           unit: String(p.unit || ''),
           image: String(p.image || p.imageUrl || p.link_anh || p.AnhText || ''),
-          warrantyMonths: p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa ? Number(p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa) : undefined
+          warrantyMonths: p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa ? Number(p.warrantyMonths || p.warranty || p.BaoHanh || p.warranty_months || p.wa) : undefined,
+          expectedOutOfStock: String(p.expectedOutOfStock || ''),
+          lowStockThreshold: Number(p.lowStockThreshold) || 0,
+          status: (p.status === 'Ngừng kinh doanh' || p.status === 'DISCONTINUED') ? 'Ngừng kinh doanh' : 'Đang kinh doanh'
         })) : [];
 
         const extractItems = (record: any, details: any[], parentIdKeys: string[]) => {
@@ -667,7 +671,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       brand: product.brand || '',
       warranty: product.warrantyMonths || 0,
       expectedOutOfStock: product.expectedOutOfStock || '',
-      image: product.image || ''
+      image: product.image || '',
+      lowStockThreshold: product.lowStockThreshold || 0,
+      status: product.status || 'Đang kinh doanh'
     }).then(result => {
       if (!result.success) {
         console.error("[AppContext] Background save failed for product:", product.id);
@@ -693,7 +699,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         type: diff > 0 ? 'NHAP' : 'XUAT',
         qty: Math.abs(diff),
         partner: 'Điều chỉnh kho',
-        date: new Date().toLocaleString('vi-VN'),
+        date: formatDateTime(new Date()),
         price: product.importPrice || 0,
         refId: 'ADJ' + Date.now().toString().slice(-6),
         sn: []
@@ -721,6 +727,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (updates.brand !== undefined) apiUpdates.brand = updates.brand;
     if (updates.warrantyMonths !== undefined) apiUpdates.warranty = updates.warrantyMonths;
     if (updates.expectedOutOfStock !== undefined) apiUpdates.expectedOutOfStock = updates.expectedOutOfStock;
+    if (updates.lowStockThreshold !== undefined) apiUpdates.lowStockThreshold = updates.lowStockThreshold;
+    if (updates.status !== undefined) apiUpdates.status = updates.status;
     if (updates.image !== undefined) apiUpdates.image = updates.image;
 
     apiService.updateRecord('Products', id, apiUpdates).then(result => {
@@ -793,7 +801,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const newCustomer = { 
       ...customer, 
       id: customer.id || generateId('KH', state.customers || []),
-      createdAt: customer.createdAt || new Date().toLocaleString('vi-VN'),
+      createdAt: customer.createdAt || formatDateTime(new Date()),
       createdBy: customer.createdBy || state.currentUser?.name || 'Admin'
     };
     setState(prev => ({ ...prev, customers: [...(prev.customers || []), newCustomer] }));
@@ -1918,7 +1926,7 @@ ${updates.purchaseId ? `<b>Đơn hàng liên kết:</b> ${updates.purchaseId}\n`
       // We'll need the full metadata which might require another read or constructing it
       if (result.status === 'success' || result.success) {
         const newItem: ImageItem = {
-          timestamp: new Date().toLocaleString('vi-VN'),
+          timestamp: formatDateTime(new Date()),
           name: filename,
           id: result.fileId || result.id || String(Date.now()),
           url: result.url || `https://lh3.googleusercontent.com/d/${result.fileId || result.id}`,

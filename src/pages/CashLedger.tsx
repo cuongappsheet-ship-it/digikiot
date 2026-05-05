@@ -392,7 +392,7 @@ return (
                    <div className="text-rose-500 font-medium text-xs mt-1">Bạn chưa cấu hình Ví/Ngân hàng</div>
                 ) : (
                   <select 
-                    value={walletId}
+                    value={walletId || ''}
                     onChange={(e) => setWalletId(e.target.value)}
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-sm font-semibold outline-none mt-1 shadow-inner focus:border-blue-400"
                   >

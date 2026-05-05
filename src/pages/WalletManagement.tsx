@@ -69,6 +69,7 @@ export const WalletManagement: React.FC = () => {
   useMobileBackModal(isModalOpen, () => setIsModalOpen(false));
   useMobileBackModal(isImageLibraryOpen, () => setIsImageLibraryOpen(false));
   useMobileBackModal(isTransactionModalOpen, () => setIsTransactionModalOpen(false));
+  useMobileBackModal(!!editingWallet, () => setEditingWallet(null));
 
   if (currentUser?.role !== 'ADMIN') {
     return (

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Plus, UserPlus, UserCircle, CheckCircle, Check, X, Trash2, Printer, Barcode, ChevronDown, Edit3, PieChart, ShoppingCart, Tag, Image as ImageIcon, ArrowLeft, Info, FileText, Wallet } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Product, InvoiceItem, Customer, CashTransaction } from '../types';
-import { formatNumber, parseFormattedNumber } from '../lib/utils';
+import { formatNumber, parseFormattedNumber, formatDateTime } from '../lib/utils';
 import { generateId } from '../lib/idUtils';
 import { NumericFormat } from 'react-number-format';
 import { PrintTemplate } from '../components/PrintTemplate';
@@ -201,7 +201,8 @@ return (
       stock: quickAddIsService ? null : (Number(quickAddStock) || 0),
       hasSerial: quickAddIsService ? false : quickAddHasSerial,
       isService: quickAddIsService,
-      color: 'bg-blue-600'
+      color: 'bg-blue-600',
+      status: 'Đang kinh doanh'
     };
     
     addProduct(newProduct);
@@ -278,8 +279,10 @@ return (
     const handler = setTimeout(() => {
       if (searchTerm.trim()) {
         const filtered = (products || []).filter(p => 
-          (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-          (p.id || '').toLowerCase().includes(searchTerm.toLowerCase())
+          (p.status || 'Đang kinh doanh') === 'Đang kinh doanh' && (
+            (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+            (p.id || '').toLowerCase().includes(searchTerm.toLowerCase())
+          )
         );
         setProductSuggestions(filtered.slice(0, 30));
       } else {
@@ -395,6 +398,13 @@ return (
     if (cart.length === 0) return alert('Giỏ hàng trống!');
     if (isCheckingOut) return;
 
+    const finalWalletId = currentTab.walletId || (wallets.length > 0 ? wallets[0].id : undefined);
+    
+    if (paidAmount > 0 && !finalWalletId && wallets.length > 0) {
+      alert('Vui lòng chọn nguồn tiền nhận thanh toán!');
+      return;
+    }
+
     // Handle Edit Mode Confirmation
     if (currentTab.editingInvoiceId && !checkoutConfirmModal?.isOpen) {
       setCheckoutConfirmModal({ isOpen: true, type: 'EDIT' });
@@ -409,9 +419,9 @@ return (
       const now = new Date();
       const invoiceId = currentTab.editingInvoiceId || generateId('HD', invoices);
       
-      // Convert datetime-local value to visual format "HH:mm:ss dd/mm/yyyy"
+      // Convert datetime-local value to visual format "dd/mm/yyyy HH:mm:ss"
       const [y, m, d, hh, min] = date.split(/[-T:]/);
-      const dateStr = `${hh}:${min}:00 ${d}/${m}/${y}`;
+      const dateStr = `${d}/${m}/${y} ${hh}:${min}:00`;
       
       const customerName = selectedCustomer ? selectedCustomer.name : 'Khách lẻ';
 
@@ -462,7 +472,7 @@ return (
           partner: customerName,
           note: `Thu tiền hóa đơn ${invoiceId}`,
           refId: invoiceId,
-          walletId: currentTab.walletId
+          walletId: finalWalletId
         };
         addCashTransaction(newTransaction);
       }
@@ -508,7 +518,7 @@ return (
           updateTask(finalTaskId, { 
             ...task, 
             status: 'COMPLETED', 
-            completedAt: new Date().toLocaleString('vi-VN'),
+            completedAt: formatDateTime(new Date()),
             purchaseId: invoiceId
           });
         }

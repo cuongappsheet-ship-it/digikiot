@@ -3,7 +3,7 @@ import { Search, Plus, FileDown, Star, X, Calendar, Truck, CreditCard, Package, 
 import { useAppContext } from '../context/AppContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { ImportOrder } from '../types';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, formatDateTime } from '../lib/utils';
 import { PrintTemplate } from '../components/PrintTemplate';
 import { useScrollLock } from '../hooks/useScrollLock';
 import { useMobileBackModal } from '../hooks/useMobileBackModal';
@@ -38,7 +38,7 @@ export const ImportHistory: React.FC = () => {
     const transactionId = `PC${Date.now().toString().slice(-6)}`;
     addCashTransaction({
       id: transactionId,
-      date: new Date().toLocaleString('vi-VN'),
+      date: formatDateTime(new Date()),
       type: 'PAYMENT',
       amount: finalAmount,
       category: 'IMPORT_PAYMENT',
@@ -567,7 +567,7 @@ return (
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ví thanh toán</label>
                 <select
-                  value={paymentWalletId}
+                  value={paymentWalletId || ''}
                   onChange={e => setPaymentWalletId(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-0 focus:border-emerald-500 font-bold text-slate-800 text-sm transition-colors cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em`, paddingRight: `2.5rem` }}

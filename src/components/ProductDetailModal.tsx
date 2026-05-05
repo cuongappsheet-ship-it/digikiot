@@ -215,6 +215,19 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     </p>
                   </div>
 
+                  <div className={`px-4 py-3 rounded-xl border flex flex-col justify-center ${
+                    (product.status || 'Đang kinh doanh') === 'Đang kinh doanh' ? 'bg-[#f0fdfa] border-[#ccfbf1]' : 'bg-[#fff5f5] border-[#fee2e2]'
+                  }`}>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${
+                      (product.status || 'Đang kinh doanh') === 'Đang kinh doanh' ? 'text-teal-600' : 'text-rose-600'
+                    }`}>Trạng thái</span>
+                    <p className={`text-sm font-black leading-none truncate ${
+                      (product.status || 'Đang kinh doanh') === 'Đang kinh doanh' ? 'text-teal-700' : 'text-rose-700'
+                    }`}>
+                      {product.status || 'Đang kinh doanh'}
+                    </p>
+                  </div>
+
                   <div className="bg-[#f0fdfa] px-4 py-3 rounded-xl border border-[#ccfbf1] flex flex-col justify-center">
                     <span className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-1">Tổng nhập</span>
                     <p className="text-base font-black text-teal-700 leading-none truncate">

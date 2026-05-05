@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, FileDown, Star, X, Calendar, User, CreditCard, Package, FileText, Printer, RotateCcw, Wallet, ChevronLeft, ChevronRight, Edit3, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, FileDown, Star, X, Calendar, User, CreditCard, Package, FileText, Printer, RotateCcw, Wallet, ChevronLeft, ChevronRight, Edit3, Image as ImageIcon, MapPin, Phone } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Invoice } from '../types';
@@ -10,7 +10,7 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useMobileBackModal } from '../hooks/useMobileBackModal';
 
 export const Invoices: React.FC = () => {
-  const { invoices, customers, addCashTransaction, updateInvoice, returnSalesOrders, products } = useAppContext();
+  const { invoices, customers, addCashTransaction, updateInvoice, returnSalesOrders, products, wallets } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,6 +19,7 @@ export const Invoices: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentWalletId, setPaymentWalletId] = useState('');
   
   // Lock scroll when modals are open
   useScrollLock(!!selectedInvoice || isPaymentModalOpen);
@@ -41,6 +42,11 @@ export const Invoices: React.FC = () => {
   const handlePayment = async () => {
     if (!selectedInvoice || isProcessingPayment) return;
     
+    if (!paymentWalletId) {
+      alert('Vui lòng chọn ví thanh toán!');
+      return;
+    }
+
     // Clean and parse the input amount
     const cleanAmountStr = paymentAmount.replace(/[^0-9]/g, '');
     if (!cleanAmountStr) return;
@@ -60,13 +66,14 @@ export const Invoices: React.FC = () => {
       const transactionId = `PT${Date.now().toString().slice(-6)}`;
       await addCashTransaction({
         id: transactionId,
-        date: new Date().toLocaleString('vi-VN'),
+        date: formatDateTime(new Date()),
         type: 'RECEIPT',
         amount: amount,
         category: 'DEBT_COLLECTION',
         partner: selectedInvoice.customer,
         note: `Thu nợ hóa đơn ${selectedInvoice.id}`,
-        refId: selectedInvoice.id
+        refId: selectedInvoice.id,
+        walletId: paymentWalletId
       });
 
       await updateInvoice(selectedInvoice.id, {
@@ -155,8 +162,7 @@ export const Invoices: React.FC = () => {
   const paginatedInvoices = filteredInvoices.slice().reverse().slice(startIndex, endIndex);
 
 
-  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false)); // auto-injected
-  useMobileBackModal(isProcessingPayment, () => setIsProcessingPayment(false)); // auto-injected
+  useMobileBackModal(isPaymentModalOpen, () => setIsPaymentModalOpen(false));
   useMobileBackModal(!!selectedInvoice, () => setSelectedInvoice(null));
 return (
     <div className="flex flex-col px-4 md:px-0 py-4 md:py-0">
@@ -380,74 +386,74 @@ return (
               </div>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <Calendar className="text-slate-400 shrink-0" size={18} />
-                    <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Ngày lập phiếu</p>
-                      <p className="text-xs font-bold text-slate-800">{selectedInvoice.date}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap xl:flex-nowrap items-center gap-2">
-                    {selectedInvoice.debt > 0 && (
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setPaymentAmount(selectedInvoice.debt.toString());
-                          setIsPaymentModalOpen(true);
-                        }}
-                        className="flex-1 md:flex-none px-3 py-2 bg-emerald-600 text-white font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
-                      >
-                        <Wallet size={14} /> Thanh toán
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => navigate('/create-return-sales', { state: { preFillInvoice: selectedInvoice } })}
-                      className="flex-1 md:flex-none px-3 py-2 bg-orange-50 border border-orange-200 text-orange-600 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-orange-100 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <RotateCcw size={14} /> Trả hàng
-                    </button>
-                    <button 
-                      onClick={() => handlePrint(selectedInvoice)}
-                      className="flex-1 md:flex-none px-3 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <Printer size={14} /> In hóa đơn
-                    </button>
-                    <button 
-                      onClick={() => navigate('/pos', { state: { editInvoice: selectedInvoice } })}
-                      className="flex-1 md:flex-none px-3 py-2 bg-blue-50 border border-blue-200 text-blue-600 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
-                    >
-                      <Edit3 size={14} /> Sửa
-                    </button>
+            <div className="p-4 md:p-6 overflow-y-auto flex-1 space-y-4 md:space-y-6">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                <div className="flex items-start gap-2.5">
+                  <User className="text-blue-500 shrink-0 mt-0.5" size={14} />
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Khách hàng</p>
+                    <p className="text-xs font-black text-slate-800 leading-tight truncate">{selectedInvoice.customer}</p>
                   </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col gap-1">
-                  <div className="flex items-center gap-3">
-                    <User className="text-slate-400 shrink-0" size={18} />
-                    <div className="flex-1">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Khách hàng</p>
-                      <p className="text-xs font-bold text-slate-800">{selectedInvoice.customer}</p>
-                    </div>
+
+                <div className="flex items-start gap-2.5">
+                  <Phone className="text-emerald-500 shrink-0 mt-0.5" size={14} />
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Số điện thoại</p>
+                    <p className="text-xs font-bold text-slate-700 leading-tight">{displayPhone || '---'}</p>
                   </div>
-                  {(displayPhone || displayAddress) && (
-                    <div className="mt-2 pt-2 border-t border-slate-200/60 pl-8 space-y-1">
-                      {displayPhone && (
-                        <p className="text-xs text-slate-600 font-medium">
-                          <span className="text-slate-400 mr-1">ĐT:</span> {displayPhone}
-                        </p>
-                      )}
-                      {displayAddress && (
-                        <p className="text-xs text-slate-600 font-medium whitespace-pre-wrap">
-                          <span className="text-slate-400 mr-1">Đ/C:</span> {displayAddress}
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
+
+                <div className="flex items-start gap-2.5 md:col-span-2">
+                  <MapPin className="text-orange-500 shrink-0 mt-0.5" size={14} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Địa chỉ</p>
+                    <p className="text-xs font-bold text-slate-600 leading-tight line-clamp-1">{displayAddress || '---'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 md:col-span-2 pt-1 mt-1 border-t border-slate-200/50">
+                  <Calendar className="text-slate-400 shrink-0 mt-0.5" size={14} />
+                  <div className="flex items-center gap-2">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Ngày lập:</p>
+                    <p className="text-xs font-bold text-slate-700 leading-none">{formatDateTime(selectedInvoice.date)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden md:flex flex-wrap items-center gap-2">
+                {selectedInvoice.debt > 0 && (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPaymentAmount(selectedInvoice.debt.toString());
+                      setIsPaymentModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-emerald-600 text-white font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Wallet size={12} /> Trả nợ
+                  </button>
+                )}
+                <button 
+                  onClick={() => navigate('/create-return-sales', { state: { preFillInvoice: selectedInvoice } })}
+                  className="px-3 py-1.5 bg-orange-50 border border-orange-200 text-orange-600 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-orange-100 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+                >
+                  <RotateCcw size={12} /> Trả hàng
+                </button>
+                <button 
+                  onClick={() => handlePrint(selectedInvoice)}
+                  className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-1.5 whitespace-nowrap"
+                >
+                  <Printer size={12} /> In
+                </button>
+                <button 
+                  onClick={() => navigate('/pos', { state: { editInvoice: selectedInvoice } })}
+                  className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-600 font-bold rounded-lg uppercase text-[10px] tracking-widest shadow-sm hover:bg-blue-100 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
+                >
+                  <Edit3 size={12} /> Sửa
+                </button>
               </div>
 
               <div className="border border-slate-100 rounded-lg overflow-hidden">
@@ -584,10 +590,41 @@ return (
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+            <div className="p-4 md:p-6 border-t border-slate-100 bg-slate-50 space-y-3 shrink-0">
+              <div className="grid grid-cols-2 gap-2 md:hidden">
+                {selectedInvoice.debt > 0 && (
+                  <button 
+                    onClick={() => {
+                      setPaymentAmount(selectedInvoice.debt.toString());
+                      setIsPaymentModalOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-2 py-3 bg-emerald-600 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg shadow-emerald-100 active:scale-95"
+                  >
+                    <Wallet size={14} /> Trả nợ
+                  </button>
+                )}
+                <button 
+                  onClick={() => navigate('/create-return-sales', { state: { preFillInvoice: selectedInvoice } })}
+                  className="flex items-center justify-center gap-2 py-3 bg-orange-50 border border-orange-200 text-orange-600 font-black rounded-xl uppercase text-[10px] tracking-widest active:scale-95"
+                >
+                  <RotateCcw size={14} /> Trả hàng
+                </button>
+                <button 
+                  onClick={() => handlePrint(selectedInvoice)}
+                  className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 text-slate-700 font-black rounded-xl uppercase text-[10px] tracking-widest active:scale-95"
+                >
+                  <Printer size={14} /> In hóa đơn
+                </button>
+                <button 
+                  onClick={() => navigate('/pos', { state: { editInvoice: selectedInvoice } })}
+                  className="flex items-center justify-center gap-2 py-3 bg-blue-50 border border-blue-200 text-blue-600 font-black rounded-xl uppercase text-[10px] tracking-widest active:scale-95"
+                >
+                  <Edit3 size={14} /> Sửa
+                </button>
+              </div>
               <button 
                 onClick={() => setSelectedInvoice(null)}
-                className="w-full py-3 bg-[#991b1b] text-white font-black rounded-lg uppercase text-[10px] tracking-widest hover:bg-[#7f1d1d] transition-colors shadow-lg shadow-red-100"
+                className="w-full py-3 bg-[#991b1b] text-white font-black rounded-xl uppercase text-[10px] tracking-widest hover:bg-[#7f1d1d] transition-colors shadow-lg shadow-red-100 active:scale-95"
               >
                 Đóng
               </button>
@@ -636,6 +673,20 @@ return (
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">đ</span>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Ví thanh toán</label>
+                <select
+                  value={paymentWalletId || ''}
+                  onChange={e => setPaymentWalletId(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:ring-0 focus:border-emerald-500 font-bold text-slate-800 text-sm transition-colors cursor-pointer appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em`, paddingRight: `2.5rem` }}
+                >
+                  <option value="" disabled>Chọn ví</option>
+                  {wallets.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="p-6 border-t border-slate-100 flex gap-3 bg-slate-50/50">

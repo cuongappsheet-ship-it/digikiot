@@ -77,8 +77,7 @@ const Users: React.FC = () => {
   };
 
   if (currentUser?.role !== 'ADMIN') {
-
-return (
+    return (
       <div className="flex flex-col items-center justify-center h-full text-slate-500">
         <AlertCircle size={48} className="mb-4 text-red-400" />
         <p className="text-lg font-bold">Truy cập bị từ chối</p>
@@ -88,6 +87,7 @@ return (
   }
 
   useMobileBackModal(isModalOpen, () => setIsModalOpen(false)); // auto-injected
+  useMobileBackModal(!!editingUser, () => setEditingUser(null)); // auto-injected
 
   return (
     <div className="p-6 space-y-6">

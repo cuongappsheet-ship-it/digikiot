@@ -13,6 +13,8 @@ export interface Product {
   brand?: string;
   expectedOutOfStock?: string;
   image?: string;
+  lowStockThreshold?: number;
+  status: 'Đang kinh doanh' | 'Ngừng kinh doanh';
 }
 
 export interface Customer {

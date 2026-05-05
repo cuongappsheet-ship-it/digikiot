@@ -75,8 +75,7 @@ export const Import: React.FC = () => {
   const [newHasSerial, setNewHasSerial] = useState(false);
 
   const hasProductModalChanges = () => {
-
-return (
+    return (
       newName !== '' ||
       newPrice !== '' ||
       newCost !== '' ||
@@ -150,7 +149,7 @@ return (
     const handler = setTimeout(() => {
       if (searchTerm.trim()) {
         const filtered = (products || []).filter(p => 
-          !p.isService && (
+          !p.isService && (p.status || 'Đang kinh doanh') === 'Đang kinh doanh' && (
             (p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
             (p.id || '').toLowerCase().includes(searchTerm.toLowerCase())
           )
@@ -286,7 +285,7 @@ return (
 
     try {
       const [y, m, d, hh, min] = transactionDate.split(/[-T:]/);
-      const dateStr = `${hh}:${min}:00 ${d}/${m}/${y}`;
+      const dateStr = `${d}/${m}/${y} ${hh}:${min}:00`;
       const now = new Date(`${y}-${m}-${d}T${hh}:${min}:00`);
 
       const isEdit = !!importDraft?.editingId;
@@ -1460,7 +1459,8 @@ return (
                     color: colors[products.length % colors.length],
                     unit: newUnit,
                     category: newCategory,
-                    isService: false
+                    isService: false,
+                    status: 'Đang kinh doanh'
                   };
                   
                   addProduct(newProd);
